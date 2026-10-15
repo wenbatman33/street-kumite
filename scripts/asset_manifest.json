@@ -9,70 +9,1858 @@
     "The character ALWAYS faces RIGHT (face and chest toward the right edge of the image) in every cell. Never mirror or flip the character. Orthodox stance: left foot and left fist forward (toward the right); light/quick punches use the FRONT fist, heavy punches use the REAR fist.",
     "Poses must follow the frame list exactly, in reading order (left to right, top row first), with clear and smooth progression between neighbouring frames."
   ],
-  "stanceNote": "Frame 1 is ALWAYS the neutral fighting stance (same as the character reference image): side-on, knees bent, both fists raised to guard the chin. It is used as a size reference.",
+  "stanceNote": "Frame 1 is ALWAYS the character's neutral fighting stance, identical to the attached character reference image. It is used as a size reference.",
   "characters": {
     "tora": {
       "name": "TORA",
       "desc": "TORA, a muscular Japanese karate fighter in his late 20s: tan skin, short spiky black hair with a small top-knot, thick eyebrows, fierce determined eyes; wears a deep navy-blue karate gi with the sleeves torn off at the shoulders and gold trim along the gi edges, a wide orange belt with black tiger stripes knotted at the waist, black fingerless gloves with gold wrist wraps, black shin guards, barefoot",
       "portrait": "head-and-shoulders bust portrait of TORA, three-quarter view facing right, fierce confident smirk, dramatic orange rim light",
       "strips": {
-        "idle":  { "grid": [2,3], "frames": ["fighting stance, weight centered", "chest sinks slightly, knees bend a little more", "lowest point of the breath, shoulders down", "rising back up", "highest point, shoulders slightly up, fists firm", "almost identical to frame 1 (loop)"] },
-        "walk":  { "grid": [2,4], "frames": ["walking forward to the right keeping the guard up: front foot stepping forward", "weight shifting onto the front foot", "rear foot sliding forward past the front foot", "rear foot landing in front, stance switched slightly", "weight settling, knees bent", "front foot stepping forward again", "rear foot dragging forward", "back to the starting guard (loop)"] },
-        "crouch":{ "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "half crouch, knees bending, guard up", "full crouch: deep squat on the balls of the feet, fists guarding the face", "same full crouch, very slightly lower (breathing)"] },
-        "jump":  { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "pre-jump squat, knees deeply bent, arms swung back", "take-off: legs extended pushing off, arms swinging up", "rising: knees pulled up toward the chest, fists up", "apex: compact tucked ball pose", "starting to fall: legs unfolding downward", "falling: legs straight down, arms out for balance", "landing squat absorbing the impact"] },
-        "lp":    { "grid": [2,2], "frames": ["neutral fighting stance", "quick jab: FRONT fist half extended toward the right", "jab fully extended at head height toward the right, rear fist guarding the chin", "front arm snapping back to guard"] },
-        "hp":    { "grid": [2,3], "frames": ["neutral fighting stance", "wind-up: rear shoulder pulled back, torso twisting", "REAR fist driving forward, hips rotating", "full extension: rear arm completely straight at head height toward the right, body leaning in, impact pose", "holding the extended punch, starting to recover", "arm pulling back to guard"] },
-        "lk":    { "grid": [2,2], "frames": ["neutral fighting stance", "front knee lifted, foot chambered", "front snap kick fully extended at waist height toward the right", "kicking leg retracting"] },
-        "hk":    { "grid": [2,3], "frames": ["neutral fighting stance", "pivot on the front foot, rear knee raised and chambered", "hips turning, leg whipping around", "high roundhouse kick fully extended at head height toward the right, upper body leaning back", "follow-through, leg passing", "leg coming down, returning to stance"] },
-        "crp":   { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "crouching guard (deep squat, fists up)", "crouching jab: still squatting, FRONT fist fully extended straight toward the right at chest height", "crouching, arm retracting"] },
-        "crk":   { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "crouching guard (deep squat, fists up)", "still crouching, front leg kicking straight out low along the floor toward the right at ankle height", "crouching, leg retracting"] },
-        "sweep": { "grid": [2,3], "frames": ["neutral fighting stance (size reference)", "dropping very low, one hand touching the floor, rear leg starting to swing", "spinning sweep: leg extending along the floor toward the right", "sweep fully extended: leg straight along the floor to the right, body very low, one hand on the floor", "leg continuing around behind", "back to a crouching guard"] },
-        "jp":    { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "in mid-air: tucked airborne pose, fists up, knees bent", "in mid-air: diving punch, arm extending diagonally down toward the right", "in mid-air: punch fully extended diagonally downward to the right, knees tucked"] },
-        "jk":    { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "in mid-air: tucked airborne pose, knees bent", "in mid-air: flying kick extending", "in mid-air: flying side kick fully extended diagonally downward to the right, other leg tucked"] },
-        "block": { "grid": [2,3], "frames": ["neutral fighting stance (size reference)", "standing block: forearms crossed in front of face and chest, body hunched and braced", "standing block being pushed back, wincing", "crouching block: low squat, forearms crossed guarding the head", "crouching block being pushed back, wincing", "standing block, braced (same as frame 2)"] },
-        "hit":   { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "hit in the face: head snapped back, upper body leaning back, pain expression", "staggering backward, arms loose", "hit in the stomach: doubled over forward clutching the gut", "still doubled over, stumbling", "crouching and hit: head snapped back while still squatting", "crouching, recoiling", "dizzy: standing wobbly, arms dangling, eyes dazed, slack mouth"] },
-        "down":  { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "knocked off his feet: airborne, blown backward to the LEFT, arms and legs flung forward toward the right, pain face", "falling backward, body almost horizontal", "back slamming into the ground", "lying flat on his back on the ground, head to the left, feet to the right", "sitting up on the ground", "kneeling on one knee, pushing up", "rising to his feet, half standing"] },
-        "throw": { "grid": [2,3], "frames": ["neutral fighting stance", "lunging forward, both hands reaching toward the right to grab an (invisible) opponent", "gripping an invisible opponent's collar with both hands at chest height", "powerful headbutt forward while still gripping", "shoving forward with both palms extended toward the right", "follow-through, palms extended, weight forward"] },
-        "sp1":   { "grid": [2,4], "frames": ["neutral fighting stance", "drawing both hands back to the REAR hip (left side), palms cupped together", "palms cupped at the rear hip, a small orange-blue energy orb glowing between them, knees bending", "energy orb growing bigger and brighter between the cupped palms", "thrusting both palms forward toward the right, arms extending", "both arms fully extended straight toward the right at chest height, palms open, a burst of orange energy leaving the palms", "holding the extended palms, energy fading", "pulling the arms back to guard"] },
-        "sp2":   { "grid": [2,4], "frames": ["neutral fighting stance", "quick shallow crouch, REAR fist cocked low at the hip", "exploding upward: rising uppercut, the fist thrusting up past the chin, orange flames bursting around the fist, body uncoiling", "fully stretched rising uppercut: punching arm straight up above the head, same-side knee raised high, other fist at the chest, flames wrapping the fist, body vertical, toes leaving the ground", "same stretched uppercut pose in the air, flames trailing", "top of the leap: body relaxing, arm still up", "falling: arms coming down, legs dangling", "landing in a crouch"] },
-        "sp3":   { "grid": [2,4], "frames": ["neutral fighting stance", "small hop forward, front leg swinging up straight", "airborne: front leg raised straight up above the head (axe-kick chamber), body leaning back", "airborne: heel at the highest point, leg vertical, orange energy at the heel", "heel slamming downward in front (toward the right), leg sweeping down", "landed: heel smashing the floor in front, low wide stance, small orange shockwave", "rising from the low stance", "returning to guard"] },
-        "win":   { "grid": [2,3], "frames": ["neutral fighting stance", "relaxing the stance, standing up tall", "standing tall with arms crossed, smirking", "raising the right fist toward the sky", "fist raised high to the sky, orange aura around the body", "holding the raised fist, triumphant shout"] }
-      }
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "fighting stance, weight centered",
+            "chest sinks slightly, knees bend a little more",
+            "lowest point of the breath, shoulders down",
+            "rising back up",
+            "highest point, shoulders slightly up, fists firm",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "walking forward to the right keeping the guard up: front foot stepping forward",
+            "weight shifting onto the front foot",
+            "rear foot sliding forward past the front foot",
+            "rear foot landing in front, stance switched slightly",
+            "weight settling, knees bent",
+            "front foot stepping forward again",
+            "rear foot dragging forward",
+            "back to the starting guard (loop)"
+          ]
+        },
+        "crouch": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "half crouch, knees bending, guard up",
+            "full crouch: deep squat on the balls of the feet, fists guarding the face",
+            "same full crouch, very slightly lower (breathing)"
+          ]
+        },
+        "jump": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "pre-jump squat, knees deeply bent, arms swung back",
+            "take-off: legs extended pushing off, arms swinging up",
+            "rising: knees pulled up toward the chest, fists up",
+            "apex: compact tucked ball pose",
+            "starting to fall: legs unfolding downward",
+            "falling: legs straight down, arms out for balance",
+            "landing squat absorbing the impact"
+          ]
+        },
+        "lp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "quick jab: FRONT fist half extended toward the right",
+            "jab fully extended at head height toward the right, rear fist guarding the chin",
+            "front arm snapping back to guard"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "wind-up: rear shoulder pulled back, torso twisting",
+            "REAR fist driving forward, hips rotating",
+            "full extension: rear arm completely straight at head height toward the right, body leaning in, impact pose",
+            "holding the extended punch, starting to recover",
+            "arm pulling back to guard"
+          ]
+        },
+        "lk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "front knee lifted, foot chambered",
+            "front snap kick fully extended at waist height toward the right",
+            "kicking leg retracting"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "pivot on the front foot, rear knee raised and chambered",
+            "hips turning, leg whipping around",
+            "high roundhouse kick fully extended at head height toward the right, upper body leaning back",
+            "follow-through, leg passing",
+            "leg coming down, returning to stance"
+          ]
+        },
+        "crp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "crouching guard (deep squat, fists up)",
+            "crouching jab: still squatting, FRONT fist fully extended straight toward the right at chest height",
+            "crouching, arm retracting"
+          ]
+        },
+        "crk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "crouching guard (deep squat, fists up)",
+            "still crouching, front leg kicking straight out low along the floor toward the right at ankle height",
+            "crouching, leg retracting"
+          ]
+        },
+        "sweep": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "dropping very low, one hand touching the floor, rear leg starting to swing",
+            "spinning sweep: leg extending along the floor toward the right",
+            "sweep fully extended: leg straight along the floor to the right, body very low, one hand on the floor",
+            "leg continuing around behind",
+            "back to a crouching guard"
+          ]
+        },
+        "jp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "in mid-air: tucked airborne pose, fists up, knees bent",
+            "in mid-air: diving punch, arm extending diagonally down toward the right",
+            "in mid-air: punch fully extended diagonally downward to the right, knees tucked"
+          ]
+        },
+        "jk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "in mid-air: tucked airborne pose, knees bent",
+            "in mid-air: flying kick extending",
+            "in mid-air: flying side kick fully extended diagonally downward to the right, other leg tucked"
+          ]
+        },
+        "block": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "standing block: forearms crossed in front of face and chest, body hunched and braced",
+            "standing block being pushed back, wincing",
+            "crouching block: low squat, forearms crossed guarding the head",
+            "crouching block being pushed back, wincing",
+            "standing block, braced (same as frame 2)"
+          ]
+        },
+        "hit": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "hit in the face: head snapped back, upper body leaning back, pain expression",
+            "staggering backward, arms loose",
+            "hit in the stomach: doubled over forward clutching the gut",
+            "still doubled over, stumbling",
+            "crouching and hit: head snapped back while still squatting",
+            "crouching, recoiling",
+            "dizzy: standing wobbly, arms dangling, eyes dazed, slack mouth"
+          ]
+        },
+        "down": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "knocked off his feet: airborne, blown backward to the LEFT, arms and legs flung forward toward the right, pain face",
+            "falling backward, body almost horizontal",
+            "back slamming into the ground",
+            "lying flat on his back on the ground, head to the left, feet to the right",
+            "sitting up on the ground",
+            "kneeling on one knee, pushing up",
+            "rising to his feet, half standing"
+          ]
+        },
+        "throw": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "lunging forward, both hands reaching toward the right to grab an (invisible) opponent",
+            "gripping an invisible opponent's collar with both hands at chest height",
+            "powerful headbutt forward while still gripping",
+            "shoving forward with both palms extended toward the right",
+            "follow-through, palms extended, weight forward"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "drawing both hands back to the REAR hip (left side), palms cupped together",
+            "palms cupped at the rear hip, a small orange-blue energy orb glowing between them, knees bending",
+            "energy orb growing bigger and brighter between the cupped palms",
+            "thrusting both palms forward toward the right, arms extending",
+            "both arms fully extended straight toward the right at chest height, palms open, a burst of orange energy leaving the palms",
+            "holding the extended palms, energy fading",
+            "pulling the arms back to guard"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "quick shallow crouch, REAR fist cocked low at the hip",
+            "exploding upward: rising uppercut, the fist thrusting up past the chin, orange flames bursting around the fist, body uncoiling",
+            "fully stretched rising uppercut: punching arm straight up above the head, same-side knee raised high, other fist at the chest, flames wrapping the fist, body vertical, toes leaving the ground",
+            "same stretched uppercut pose in the air, flames trailing",
+            "top of the leap: body relaxing, arm still up",
+            "falling: arms coming down, legs dangling",
+            "landing in a crouch"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "small hop forward, front leg swinging up straight",
+            "airborne: front leg raised straight up above the head (axe-kick chamber), body leaning back",
+            "airborne: heel at the highest point, leg vertical, orange energy at the heel",
+            "heel slamming downward in front (toward the right), leg sweeping down",
+            "landed: heel smashing the floor in front, low wide stance, small orange shockwave",
+            "rising from the low stance",
+            "returning to guard"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "relaxing the stance, standing up tall",
+            "standing tall with arms crossed, smirking",
+            "raising the right fist toward the sky",
+            "fist raised high to the sky, orange aura around the body",
+            "holding the raised fist, triumphant shout"
+          ]
+        }
+      },
+      "stance": "neutral fighting stance, knees bent, both fists raised to guard the chin, left foot and left fist forward"
     },
     "vera": {
       "name": "VERA",
       "desc": "VERA, an athletic Brazilian capoeira kickboxer woman in her mid 20s: warm brown skin, long dark curly hair tied in a high ponytail, confident grin; wears an emerald-green sports crop top with a yellow stripe, loose white capoeira pants with a yellow-and-green cord belt, white hand wraps, a gold bead necklace, barefoot",
       "portrait": "head-and-shoulders bust portrait of VERA, three-quarter view facing right, playful confident grin, dramatic green rim light",
       "strips": {
-        "idle":  { "grid": [2,3], "frames": ["light bouncing fighting stance, weight centered, fists up", "bouncing down, knees bending", "lowest point of the bounce", "bouncing up", "highest point, on the balls of the feet", "almost identical to frame 1 (loop)"] },
-        "walk":  { "grid": [2,4], "frames": ["walking forward to the right with a light dancing step, guard up: front foot stepping forward", "weight shifting onto the front foot", "rear foot gliding forward", "rear foot landing", "settling, knees bent", "front foot stepping forward again", "rear foot gliding", "back to the starting guard (loop)"] },
-        "crouch":{ "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "half crouch, knees bending, guard up", "full crouch: low squat, one hand near the floor, the other guarding the face", "same full crouch, very slightly lower (breathing)"] },
-        "jump":  { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "pre-jump squat, knees deeply bent, arms swung back", "take-off: legs extended pushing off, arms swinging up", "rising: knees pulled up, ponytail flowing", "apex: compact tucked pose", "starting to fall: legs unfolding", "falling: legs straight down, arms out for balance", "landing squat absorbing the impact"] },
-        "lp":    { "grid": [2,2], "frames": ["neutral fighting stance", "quick jab: FRONT fist half extended toward the right", "jab fully extended at head height toward the right, rear fist guarding the chin", "front arm snapping back to guard"] },
-        "hp":    { "grid": [2,3], "frames": ["neutral fighting stance", "wind-up: rear elbow raised and pulled back, torso twisting", "spinning backfist: body turning, rear arm swinging around", "full extension: backfist arm fully extended at head height toward the right, impact pose", "holding the extended arm, starting to recover", "arm pulling back to guard"] },
-        "lk":    { "grid": [2,2], "frames": ["neutral fighting stance", "front knee lifted, foot chambered", "quick front kick fully extended at waist height toward the right", "kicking leg retracting"] },
-        "hk":    { "grid": [2,3], "frames": ["neutral fighting stance", "turning the back, rear leg starting to lift (spinning hook kick)", "spinning, leg rising in a wide arc", "high spinning crescent kick fully extended at head height toward the right, body twisted", "follow-through, leg passing", "landing, returning to stance"] },
-        "crp":   { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "crouching guard (low squat, fists up)", "crouching jab: still squatting, FRONT fist fully extended straight toward the right at chest height", "crouching, arm retracting"] },
-        "crk":   { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "crouching guard (low squat, fists up)", "still crouching, front leg kicking straight out low along the floor toward the right at ankle height", "crouching, leg retracting"] },
-        "sweep": { "grid": [2,3], "frames": ["neutral fighting stance (size reference)", "dropping very low with both hands on the floor (capoeira negativa), leg starting to swing", "spinning sweep: leg extending along the floor toward the right", "sweep fully extended: leg straight along the floor to the right, body very low, both hands on the floor", "leg continuing around behind", "back to a crouching guard"] },
-        "jp":    { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "in mid-air: tucked airborne pose, fists up", "in mid-air: diving elbow/punch extending diagonally down toward the right", "in mid-air: punch fully extended diagonally downward to the right, knees tucked"] },
-        "jk":    { "grid": [2,2], "frames": ["neutral fighting stance (size reference)", "in mid-air: tucked airborne pose", "in mid-air: flying kick extending", "in mid-air: flying side kick fully extended diagonally downward to the right, other leg tucked"] },
-        "block": { "grid": [2,3], "frames": ["neutral fighting stance (size reference)", "standing block: forearms crossed in front of face and chest, body hunched and braced", "standing block being pushed back, wincing", "crouching block: low squat, forearms crossed guarding the head", "crouching block being pushed back, wincing", "standing block, braced (same as frame 2)"] },
-        "hit":   { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "hit in the face: head snapped back, upper body leaning back, pain expression", "staggering backward, arms loose", "hit in the stomach: doubled over forward clutching the gut", "still doubled over, stumbling", "crouching and hit: head snapped back while still squatting", "crouching, recoiling", "dizzy: standing wobbly, arms dangling, eyes dazed, slack mouth"] },
-        "down":  { "grid": [2,4], "frames": ["neutral fighting stance (size reference)", "knocked off her feet: airborne, blown backward to the LEFT, arms and legs flung forward toward the right, pain face", "falling backward, body almost horizontal", "back slamming into the ground", "lying flat on her back on the ground, head to the left, feet to the right", "sitting up on the ground", "kneeling on one knee, pushing up", "rising to her feet, half standing"] },
-        "throw": { "grid": [2,3], "frames": ["neutral fighting stance", "lunging forward, both hands reaching toward the right to grab an (invisible) opponent", "gripping an invisible opponent's shoulders with both hands at chest height", "driving a knee strike forward and up while still gripping", "spinning push kick: sole of the foot thrust toward the right", "follow-through, leg extended, weight forward"] },
-        "sp1":   { "grid": [2,4], "frames": ["neutral fighting stance", "leaning forward low, about to launch", "launching forward: body diving toward the right, front leg starting to extend", "flying side kick: body almost horizontal flying toward the right, front leg fully extended, green wind streaks behind her", "same flying kick, green wind streaks", "landing, kicking leg retracting", "low recovery stance", "back to guard"] },
-        "sp2":   { "grid": [2,4], "frames": ["neutral fighting stance", "crouching and leaning back, gathering power", "springing upward, kicking leg swinging up in front of her", "back-flip kick: body going backward and upside down, leg extended upward trailing a green crescent-moon arc", "fully upside down mid back-flip, legs over the head, green arc", "completing the flip, legs coming around", "upright again, falling", "landing in a crouch"] },
-        "sp3":   { "grid": [2,4], "frames": ["neutral fighting stance", "dropping forward onto both hands", "handstand, legs split wide apart, starting to spin", "handstand spin: legs horizontal, front leg kicking toward the right, green wind ring", "handstand spin: other leg swinging in front, green wind ring", "handstand spin: legs horizontal again", "coming down from the handstand onto the feet", "back to guard"] },
-        "win":   { "grid": [2,3], "frames": ["neutral fighting stance", "swaying in a capoeira ginga dance step", "spinning on one foot, ponytail flying", "finishing the spin", "pointing at the viewer with a wink", "hand on hip, confident grin, other hand waving"] }
-      }
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "light bouncing fighting stance, weight centered, fists up",
+            "bouncing down, knees bending",
+            "lowest point of the bounce",
+            "bouncing up",
+            "highest point, on the balls of the feet",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "walking forward to the right with a light dancing step, guard up: front foot stepping forward",
+            "weight shifting onto the front foot",
+            "rear foot gliding forward",
+            "rear foot landing",
+            "settling, knees bent",
+            "front foot stepping forward again",
+            "rear foot gliding",
+            "back to the starting guard (loop)"
+          ]
+        },
+        "crouch": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "half crouch, knees bending, guard up",
+            "full crouch: low squat, one hand near the floor, the other guarding the face",
+            "same full crouch, very slightly lower (breathing)"
+          ]
+        },
+        "jump": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "pre-jump squat, knees deeply bent, arms swung back",
+            "take-off: legs extended pushing off, arms swinging up",
+            "rising: knees pulled up, ponytail flowing",
+            "apex: compact tucked pose",
+            "starting to fall: legs unfolding",
+            "falling: legs straight down, arms out for balance",
+            "landing squat absorbing the impact"
+          ]
+        },
+        "lp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "quick jab: FRONT fist half extended toward the right",
+            "jab fully extended at head height toward the right, rear fist guarding the chin",
+            "front arm snapping back to guard"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "wind-up: rear elbow raised and pulled back, torso twisting",
+            "spinning backfist: body turning, rear arm swinging around",
+            "full extension: backfist arm fully extended at head height toward the right, impact pose",
+            "holding the extended arm, starting to recover",
+            "arm pulling back to guard"
+          ]
+        },
+        "lk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "front knee lifted, foot chambered",
+            "quick front kick fully extended at waist height toward the right",
+            "kicking leg retracting"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "turning the back, rear leg starting to lift (spinning hook kick)",
+            "spinning, leg rising in a wide arc",
+            "high spinning crescent kick fully extended at head height toward the right, body twisted",
+            "follow-through, leg passing",
+            "landing, returning to stance"
+          ]
+        },
+        "crp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "crouching guard (low squat, fists up)",
+            "crouching jab: still squatting, FRONT fist fully extended straight toward the right at chest height",
+            "crouching, arm retracting"
+          ]
+        },
+        "crk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "crouching guard (low squat, fists up)",
+            "still crouching, front leg kicking straight out low along the floor toward the right at ankle height",
+            "crouching, leg retracting"
+          ]
+        },
+        "sweep": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "dropping very low with both hands on the floor (capoeira negativa), leg starting to swing",
+            "spinning sweep: leg extending along the floor toward the right",
+            "sweep fully extended: leg straight along the floor to the right, body very low, both hands on the floor",
+            "leg continuing around behind",
+            "back to a crouching guard"
+          ]
+        },
+        "jp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "in mid-air: tucked airborne pose, fists up",
+            "in mid-air: diving elbow/punch extending diagonally down toward the right",
+            "in mid-air: punch fully extended diagonally downward to the right, knees tucked"
+          ]
+        },
+        "jk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "in mid-air: tucked airborne pose",
+            "in mid-air: flying kick extending",
+            "in mid-air: flying side kick fully extended diagonally downward to the right, other leg tucked"
+          ]
+        },
+        "block": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "standing block: forearms crossed in front of face and chest, body hunched and braced",
+            "standing block being pushed back, wincing",
+            "crouching block: low squat, forearms crossed guarding the head",
+            "crouching block being pushed back, wincing",
+            "standing block, braced (same as frame 2)"
+          ]
+        },
+        "hit": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "hit in the face: head snapped back, upper body leaning back, pain expression",
+            "staggering backward, arms loose",
+            "hit in the stomach: doubled over forward clutching the gut",
+            "still doubled over, stumbling",
+            "crouching and hit: head snapped back while still squatting",
+            "crouching, recoiling",
+            "dizzy: standing wobbly, arms dangling, eyes dazed, slack mouth"
+          ]
+        },
+        "down": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance (size reference)",
+            "knocked off her feet: airborne, blown backward to the LEFT, arms and legs flung forward toward the right, pain face",
+            "falling backward, body almost horizontal",
+            "back slamming into the ground",
+            "lying flat on her back on the ground, head to the left, feet to the right",
+            "sitting up on the ground",
+            "kneeling on one knee, pushing up",
+            "rising to her feet, half standing"
+          ]
+        },
+        "throw": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "lunging forward, both hands reaching toward the right to grab an (invisible) opponent",
+            "gripping an invisible opponent's shoulders with both hands at chest height",
+            "driving a knee strike forward and up while still gripping",
+            "spinning push kick: sole of the foot thrust toward the right",
+            "follow-through, leg extended, weight forward"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "leaning forward low, about to launch",
+            "launching forward: body diving toward the right, front leg starting to extend",
+            "flying side kick: body almost horizontal flying toward the right, front leg fully extended, green wind streaks behind her",
+            "same flying kick, green wind streaks",
+            "landing, kicking leg retracting",
+            "low recovery stance",
+            "back to guard"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "crouching and leaning back, gathering power",
+            "springing upward, kicking leg swinging up in front of her",
+            "back-flip kick: body going backward and upside down, leg extended upward trailing a green crescent-moon arc",
+            "fully upside down mid back-flip, legs over the head, green arc",
+            "completing the flip, legs coming around",
+            "upright again, falling",
+            "landing in a crouch"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "dropping forward onto both hands",
+            "handstand, legs split wide apart, starting to spin",
+            "handstand spin: legs horizontal, front leg kicking toward the right, green wind ring",
+            "handstand spin: other leg swinging in front, green wind ring",
+            "handstand spin: legs horizontal again",
+            "coming down from the handstand onto the feet",
+            "back to guard"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "swaying in a capoeira ginga dance step",
+            "spinning on one foot, ponytail flying",
+            "finishing the spin",
+            "pointing at the viewer with a wink",
+            "hand on hip, confident grin, other hand waving"
+          ]
+        }
+      },
+      "stance": "neutral fighting stance, knees bent, both fists raised to guard the chin, left foot and left fist forward"
+    },
+    "baatar": {
+      "name": "BAATAR",
+      "desc": "BAATAR, a gigantic Mongolian bokh wrestler in his 30s, about two heads taller and much broader than an average fighter: tan skin, clean-shaven round face, long black hair tied in a single thick braid, fierce smile; wears a short deep-red open-front wrestling vest with long sleeves and gold trim that leaves the chest and belly bare, tight royal-blue wrestling briefs, and tall brown leather boots with upturned toes, a string of wooden prayer beads around the neck, wide leather wristbands",
+      "portrait": "head-and-shoulders bust portrait of BAATAR, three-quarter view facing right, fierce grin, dramatic red rim light",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "wide low wrestling stance, arms spread forward with big open hands ready to grab",
+            "swaying slightly to one side, hands open",
+            "lowest point, knees bent wide",
+            "swaying back",
+            "highest point, chest puffed",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "heavy stomping step forward to the right, arms spread wide with open hands",
+            "weight landing on the front foot, ground-shaking",
+            "rear foot swinging forward",
+            "rear foot stomping down in front",
+            "settling, knees bent wide",
+            "front foot lifting again",
+            "stepping forward",
+            "back to the starting wide stance (loop)"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral wide stance",
+            "raising both clasped fists high above the head",
+            "swinging both clasped fists down in a huge arc",
+            "double-fist hammer blow fully extended forward and down at chest height toward the right, impact",
+            "holding the hammer blow",
+            "returning to stance"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral wide stance",
+            "lifting the front knee high",
+            "big stomping push kick extending",
+            "massive push kick fully extended toward the right at chest height with the boot sole",
+            "leg coming down",
+            "stomping back into stance"
+          ]
+        },
+        "jp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral wide stance (size reference)",
+            "in mid-air: arms raised, body tucked",
+            "in mid-air: diving body press, arms spread forward and down",
+            "in mid-air: belly-flop body press, whole body diagonal toward the lower right, arms spread"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "command grab: lifting an (invisible) opponent overhead and slamming them",
+          "frames": [
+            "neutral wide stance",
+            "lunging forward with both arms wide open to grab",
+            "both arms closed around an invisible opponent at chest height, leaning back",
+            "lifting the invisible opponent high overhead with both arms fully raised, face straining",
+            "spinning around while holding the arms raised overhead",
+            "arching backward, arms raised overhead and behind",
+            "slamming down: crouched low with both arms driven down to the ground in front, dust impact",
+            "rising back up to the wide stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "eagle dance leap (anti-air)",
+          "frames": [
+            "neutral wide stance",
+            "crouching with both arms spread wide to the sides like eagle wings",
+            "leaping upward with arms spread wide like eagle wings, knees up",
+            "in the air, both arms sweeping up like wings, wind gust around the arms",
+            "in the air, both arms sweeping down like a wing beat, wind gust",
+            "top of the leap, arms spread",
+            "descending with arms spread",
+            "landing in a wide crouch"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "armored shoulder charge",
+          "frames": [
+            "neutral wide stance",
+            "lowering the shoulder, body tilted forward",
+            "charging forward to the right shoulder-first, feet kicking up dust",
+            "charging, body low and forward, determined face",
+            "shoulder impact pose, body fully extended forward, shockwave at the shoulder",
+            "follow-through stumbling forward",
+            "recovering upright",
+            "back to the wide stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral wide stance",
+            "standing tall, arms spread wide like eagle wings",
+            "hopping on one foot with arms spread like a soaring eagle",
+            "landing, arms still spread",
+            "flexing both arms, laughing",
+            "fists on hips, proud"
+          ]
+        }
+      },
+      "stance": "wide low wrestling stance, knees bent, both arms spread forward with big open hands ready to grab"
+    },
+    "skye": {
+      "name": "SKYE",
+      "desc": "SKYE, an athletic Norwegian arctic rescue ranger woman in her late 20s: fair skin with rosy cheeks, short wind-swept platinum-blonde hair, sharp blue eyes, orange snow goggles pushed up on the forehead; wears a fitted ice-blue technical jacket with orange reflective stripes on the arms, dark charcoal cargo pants tucked into sturdy white-and-grey snow boots, black fingerless gloves; faint white frost mist swirls around her hands",
+      "portrait": "head-and-shoulders bust portrait of SKYE, three-quarter view facing right, calm determined look, cold blue rim light, frost mist",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "steady guard stance, lead hand forward open with faint frost mist",
+            "breathing in, shoulders lowering",
+            "lowest point, frost mist swirling at the hands",
+            "rising",
+            "highest point",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "ice disc throw",
+          "frames": [
+            "neutral fighting stance",
+            "drawing the rear hand back, a glowing blue ice disc forming in the palm",
+            "crouching slightly, holding the glowing ice disc back at the hip",
+            "starting a sidearm throwing motion",
+            "arm fully extended forward toward the right at chest height, palm open, disc released (no disc drawn), frost burst at the hand",
+            "follow-through",
+            "recovering",
+            "back to guard"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "frost spire (palm slam that raises ice)",
+          "frames": [
+            "neutral fighting stance",
+            "dropping into a crouch, one palm raised",
+            "slamming one palm onto the ground, frost burst at the palm",
+            "frost spreading from the palm across the ground toward the right",
+            "rising halfway, the other arm pointing forward and upward",
+            "pointing forward and upward, commanding pose",
+            "standing up",
+            "back to guard"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "low ice slide kick",
+          "frames": [
+            "neutral fighting stance",
+            "leaning forward, crouching low",
+            "sliding forward on one knee along a trail of ice, front leg extended low toward the right",
+            "low slide kick, leg fully extended along the floor, ice trail behind",
+            "still sliding, ice trail",
+            "stopping, rising from the slide",
+            "standing up",
+            "back to guard"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral fighting stance",
+            "brushing frost off the shoulder",
+            "pulling the snow goggles down over the eyes",
+            "giving a thumbs-up",
+            "arms crossed, confident smile",
+            "holding the confident pose, frost mist swirling"
+          ]
+        }
+      },
+      "stance": "neutral fighting stance, knees bent, lead hand open forward with faint frost mist, rear fist guarding the chin"
+    },
+    "kagero": {
+      "name": "KAGERO",
+      "desc": "KAGERO, an agile Japanese kunoichi woman in her early 20s: pale skin, sharp violet eyes, short black hair with long bangs and a small high ponytail, a dark charcoal cloth mask covering the lower half of her face; wears a fitted charcoal-grey ninja outfit with dark plum armor panels, chain-mail mesh sleeves, a long flowing crimson scarf, black wrapped shins and split-toe tabi boots, a short sword strapped across her lower back",
+      "portrait": "head-and-shoulders bust portrait of KAGERO, three-quarter view facing right, masked face, intense violet eyes, crimson scarf flowing, purple rim light",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "low ninja stance, one hand holding a kunai in reverse grip, crimson scarf fluttering",
+            "scarf fluttering, body dipping slightly",
+            "lowest point, ready to spring",
+            "rising",
+            "highest point, scarf swirling",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "sneaking quick step forward to the right, low posture, kunai ready",
+            "weight on the front foot",
+            "rear foot passing quickly",
+            "rear foot landing softly",
+            "low posture, scarf trailing",
+            "front foot stepping again",
+            "rear foot passing",
+            "back to the starting low stance (loop)"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral ninja stance",
+            "drawing the kunai hand back",
+            "slashing forward with the kunai, purple slash trail",
+            "kunai slash fully extended at head height toward the right, purple arc",
+            "holding",
+            "returning to stance"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "kunai throw",
+          "frames": [
+            "neutral ninja stance",
+            "reaching to the belt",
+            "arm drawn back holding two kunai between the fingers",
+            "throwing arm sweeping forward",
+            "throwing arm fully extended toward the right, kunai released (no kunai drawn), purple sparkle",
+            "follow-through",
+            "recovering",
+            "back to stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "crescent blade flip (rising anti-air slash)",
+          "frames": [
+            "neutral ninja stance",
+            "crouching low, short sword drawn",
+            "springing upward slashing the short sword upward, purple crescent slash trail",
+            "rising spin, sword arc above the head, purple crescent",
+            "flipping backward in the air",
+            "apex of the flip, body inverted",
+            "falling feet first",
+            "landing in a low crouch"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "smoke teleport",
+          "frames": [
+            "neutral ninja stance",
+            "forming a ninja hand seal in front of the chest",
+            "body starting to dissolve into purple smoke and leaves",
+            "mostly purple smoke with a faint silhouette",
+            "reappearing out of purple smoke and leaves",
+            "fully materialized in a low crouch",
+            "rising",
+            "back to stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral ninja stance",
+            "standing up straight, scarf flowing",
+            "forming a hand seal, leaves swirling around",
+            "arms crossed, eyes closed",
+            "kunai spinning on one finger",
+            "bowing slightly, scarf flowing"
+          ]
+        }
+      },
+      "stance": "low ninja stance, knees bent, one hand holding a kunai in reverse grip in front, the other hand back"
+    },
+    "shen": {
+      "name": "SHEN",
+      "desc": "SHEN, a lean, wiry Chinese warrior monk in his 40s: shaved head, calm eyes, thin moustache and short goatee, saffron-orange and deep crimson monk robes tied with a cloth sash, one shoulder bare, wooden prayer beads, cloth leg wraps and straw sandals; ALWAYS holding a long red-lacquered wooden bo staff with gold metal caps in both hands (the staff is longer than he is tall)",
+      "portrait": "head-and-shoulders bust portrait of SHEN, three-quarter view facing right, serene focused expression, the red staff over the shoulder, warm golden rim light",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "ready stance holding the long staff diagonally across the body with both hands, staff tip pointing forward toward the right",
+            "breathing, staff tip dipping slightly",
+            "lowest point",
+            "rising",
+            "highest point, staff steady",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "stepping forward to the right holding the staff ready",
+            "weight on the front foot",
+            "rear foot passing",
+            "rear foot landing",
+            "settling",
+            "stepping again",
+            "rear foot passing",
+            "back to the ready stance (loop)"
+          ]
+        },
+        "crouch": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "half crouch, staff held low",
+            "full crouch, staff held horizontally in front",
+            "same full crouch, very slightly lower"
+          ]
+        },
+        "lp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance",
+            "short quick jab with the front end of the staff",
+            "staff jab extended toward the right at chest height",
+            "pulling the staff back"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance",
+            "drawing the staff back along the body",
+            "lunging step, staff thrusting forward",
+            "full-length staff thrust: the staff fully extended far forward toward the right at head height, held by the rear end",
+            "holding the thrust",
+            "pulling the staff back to stance"
+          ]
+        },
+        "lk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance",
+            "lifting the front knee, staff held back",
+            "quick front kick at waist height toward the right while holding the staff",
+            "retracting the leg"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance",
+            "winding the staff back over the shoulder",
+            "swinging the staff horizontally",
+            "huge horizontal staff swing fully extended toward the right at head height, motion arc",
+            "follow-through",
+            "returning to stance"
+          ]
+        },
+        "crp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "crouching with the staff held low",
+            "crouching staff poke: staff thrust straight toward the right at knee height",
+            "crouching, pulling the staff back"
+          ]
+        },
+        "crk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "crouching with the staff held low",
+            "crouching low kick toward the right at ankle height, staff held back",
+            "crouching, leg retracting"
+          ]
+        },
+        "sweep": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "dropping low, staff swung back",
+            "low staff sweep along the floor toward the right",
+            "staff sweep fully extended along the floor to the right, body very low",
+            "staff continuing around",
+            "back to a crouching guard"
+          ]
+        },
+        "jp": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "in mid-air: staff raised overhead, knees tucked",
+            "in mid-air: staff swinging down",
+            "in mid-air: staff strike fully extended diagonally downward to the right"
+          ]
+        },
+        "jk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "in mid-air: tucked, staff held behind",
+            "in mid-air: flying kick extending, staff held behind",
+            "in mid-air: flying kick fully extended diagonally downward to the right, staff held behind"
+          ]
+        },
+        "block": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance (size reference)",
+            "standing block: staff held horizontally in front of the face and chest with both hands",
+            "standing block being pushed back",
+            "crouching block: low squat, staff held horizontally in front of the head",
+            "crouching block being pushed back",
+            "standing block, braced"
+          ]
+        },
+        "throw": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance",
+            "hooking forward with the staff toward the right",
+            "staff hooked behind an invisible opponent at chest height",
+            "pulling the staff, twisting the body",
+            "flinging the staff forward and upward toward the right",
+            "follow-through"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "dragon thrust (long-range staff thrust)",
+          "frames": [
+            "neutral staff stance",
+            "pulling the staff far back low",
+            "lunging step forward",
+            "staff thrusting forward",
+            "staff fully extended at maximum reach toward the right at chest height, golden energy ripple at the tip",
+            "holding the thrust, energy fading",
+            "pulling the staff back",
+            "back to stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "whirlwind staff (spinning the staff overhead, anti-air)",
+          "frames": [
+            "neutral staff stance",
+            "raising the staff overhead",
+            "spinning the staff overhead like a propeller, golden whirlwind",
+            "spinning, rising slightly off the ground",
+            "spinning, golden whirlwind",
+            "staff slowing",
+            "landing",
+            "back to stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "pole vault flying kick",
+          "frames": [
+            "neutral staff stance",
+            "planting the staff tip on the ground in front",
+            "vaulting up on the planted staff, body rising",
+            "at the top of the vault, body horizontal, legs swinging forward",
+            "flying kick forward toward the right off the vault, staff trailing",
+            "landing",
+            "crouching",
+            "back to stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral staff stance",
+            "spinning the staff beside the body",
+            "planting the staff upright",
+            "palm-and-fist salute with the staff resting in the elbow",
+            "bowing respectfully",
+            "calm stance, eyes closed"
+          ]
+        }
+      },
+      "stance": "ready stance holding the long red staff diagonally across the body with both hands, staff tip pointing forward toward the right"
+    },
+    "drake": {
+      "name": "DRAKE",
+      "desc": "DRAKE, a towering heavyweight boxer in his early 30s of Nigerian-British descent: dark brown skin, very muscular, short black hair in neat cornrows, a gold stud earring, a fierce scowl with a black mouthguard; wears emerald-green boxing gloves, shiny gold boxing trunks with a black waistband, white wrist tape, and tall white boxing boots",
+      "portrait": "head-and-shoulders bust portrait of DRAKE, three-quarter view facing right, fierce scowl, gloves raised, gold rim light",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "peek-a-boo boxing stance, green gloves raised to the face, bouncing on the toes",
+            "bouncing down",
+            "lowest point of the bounce",
+            "bouncing up",
+            "highest point on the toes",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "boxing footwork shuffle forward to the right, gloves up",
+            "front foot sliding",
+            "rear foot following",
+            "settling",
+            "front foot sliding again",
+            "rear foot following",
+            "bobbing slightly",
+            "back to the starting guard (loop)"
+          ]
+        },
+        "lk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral boxing stance",
+            "dipping low, front glove cocked",
+            "quick low jab to the body fully extended toward the right at belly height",
+            "retracting the glove"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral boxing stance",
+            "winding up a big looping overhand",
+            "overhand swinging over the top",
+            "huge overhand right fully extended toward the right at head height, coming down",
+            "follow-through",
+            "returning to guard"
+          ]
+        },
+        "crk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral boxing stance (size reference)",
+            "crouching low with gloves up",
+            "crouching low punch to the shins fully extended toward the right near the floor",
+            "crouching, retracting"
+          ]
+        },
+        "sweep": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral boxing stance (size reference)",
+            "dropping very low, rear glove cocked",
+            "lunging low punch skimming the floor",
+            "very low lunging punch fully extended along the floor toward the right",
+            "follow-through",
+            "back to a crouching guard"
+          ]
+        },
+        "jk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral boxing stance (size reference)",
+            "in mid-air: gloves raised, knees tucked",
+            "in mid-air: winding a hammer fist",
+            "in mid-air: diving hammer fist with both gloves fully extended diagonally downward to the right"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "armored dash straight punch",
+          "frames": [
+            "neutral boxing stance",
+            "coiling low, rear glove cocked",
+            "dashing forward low toward the right",
+            "dashing, golden aura around the body",
+            "explosive straight right fully extended toward the right at chest height, shockwave at the glove",
+            "holding the punch",
+            "recovering",
+            "back to guard"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "dash uppercut (anti-air)",
+          "frames": [
+            "neutral boxing stance",
+            "dipping very low",
+            "rising uppercut, glove driving upward past the chin, golden streak",
+            "fist high above the head, toes leaving the ground",
+            "airborne, uppercut extended upward",
+            "falling",
+            "landing",
+            "back to guard"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "body blow rush",
+          "frames": [
+            "neutral boxing stance",
+            "stepping in low",
+            "left hook to the body toward the right",
+            "right hook to the body",
+            "left hook to the body",
+            "rising right uppercut finisher, golden streak",
+            "recovering",
+            "back to guard"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral boxing stance",
+            "raising both green gloves overhead",
+            "shouting with both gloves raised",
+            "pounding the gloves together",
+            "pointing one glove at the viewer",
+            "flexing, gloves on the chest"
+          ]
+        }
+      },
+      "stance": "peek-a-boo boxing stance, knees bent, both green gloves raised to the face"
+    },
+    "kanya": {
+      "name": "KANYA",
+      "desc": "KANYA, a lean, toned Thai Muay Thai fighter woman in her mid 20s: golden-brown skin, black hair tied in a tight bun, a sacred white-and-red cord headband ring around her head, red braided cord armbands on both upper arms, focused calm eyes; wears a black sports top, bright red satin Muay Thai shorts with gold geometric patterns (no letters), white hand wraps and white ankle supports, barefoot",
+      "portrait": "head-and-shoulders bust portrait of KANYA, three-quarter view facing right, calm fierce focus, headband, warm red rim light",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "upright Muay Thai stance, lead leg light, hands high, rhythmic sway",
+            "swaying forward slightly",
+            "lowest point of the rhythm",
+            "swaying back",
+            "highest point, lead knee lifting slightly",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "measured rhythmic step forward to the right, hands high",
+            "weight on the front foot",
+            "rear foot passing",
+            "rear foot landing",
+            "settling",
+            "front foot stepping again",
+            "rear foot passing",
+            "back to the starting stance (loop)"
+          ]
+        },
+        "hp": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral Muay Thai stance",
+            "turning the shoulders, rear elbow raised",
+            "horizontal elbow strike swinging",
+            "horizontal elbow strike fully extended toward the right at head height, impact",
+            "follow-through",
+            "returning to guard"
+          ]
+        },
+        "lk": {
+          "grid": [
+            2,
+            2
+          ],
+          "frames": [
+            "neutral Muay Thai stance",
+            "lifting the front knee",
+            "push kick (teep) with the sole fully extended toward the right at belly height",
+            "retracting the leg"
+          ]
+        },
+        "hk": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral Muay Thai stance",
+            "stepping out, rear leg starting to swing",
+            "hips turning hard, shin whipping",
+            "high roundhouse shin kick fully extended toward the right at head height",
+            "follow-through spin",
+            "returning to stance"
+          ]
+        },
+        "sweep": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral Muay Thai stance (size reference)",
+            "dropping low",
+            "low sweeping roundhouse kick along the floor",
+            "low roundhouse kick fully extended along the floor toward the right",
+            "follow-through",
+            "back to a crouching guard"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "flying knee",
+          "frames": [
+            "neutral Muay Thai stance",
+            "quick skip step forward",
+            "leaping forward, knee driving forward and up, arms reaching",
+            "in the air, knee fully extended forward toward the right at head height, arms pulling down",
+            "knee impact pose in the air",
+            "descending",
+            "landing",
+            "back to stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "rising knee (anti-air)",
+          "frames": [
+            "neutral Muay Thai stance",
+            "crouching low",
+            "driving a knee straight upward while leaping",
+            "knee high above the chest, body vertical, arms pulling down",
+            "airborne, knee up",
+            "falling",
+            "landing",
+            "back to stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "elbow storm combo",
+          "frames": [
+            "neutral Muay Thai stance",
+            "stepping in close",
+            "right horizontal elbow toward the right",
+            "left horizontal elbow",
+            "rising upward elbow",
+            "downward spike elbow chopping down in front",
+            "recovering",
+            "back to stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "neutral Muay Thai stance",
+            "kneeling with palms pressed together in a respectful bow",
+            "bowing the head to the floor",
+            "rising with palms together",
+            "standing, arms raised gracefully",
+            "calm proud stance"
+          ]
+        }
+      },
+      "stance": "upright Muay Thai stance, lead leg light, both hands raised high"
     }
   },
   "fx": {
-    "tora_fireball": { "grid": [2,2], "anchor": "centroid", "desc": "a swirling ball of orange-and-blue fire energy shaped faintly like a roaring tiger head, flying toward the RIGHT, with a short flame tail trailing to the left", "frames": ["energy ball, flames flickering", "energy ball, flames shifted", "energy ball, tail longer", "energy ball, brighter core"] }
+    "tora_fireball": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "desc": "a swirling ball of orange-and-blue fire energy shaped faintly like a roaring tiger head, flying toward the RIGHT, with a short flame tail trailing to the left",
+      "frames": [
+        "energy ball, flames flickering",
+        "energy ball, flames shifted",
+        "energy ball, tail longer",
+        "energy ball, brighter core"
+      ]
+    },
+    "skye_disc": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "h": 110,
+      "desc": "a spinning disc of blue-white ice crystal with frost sparkles, tilted at an angle, flying toward the RIGHT, short frost trail to the left",
+      "frames": [
+        "ice disc, sparkles",
+        "ice disc rotated",
+        "ice disc rotated more",
+        "ice disc, brighter core"
+      ]
+    },
+    "skye_spire": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "baseline",
+      "h": 300,
+      "desc": "a jagged spire of blue ice erupting upward from the ground, tall and narrow, frost mist at the base",
+      "frames": [
+        "small ice spikes just breaking out of the ground",
+        "tall jagged ice spire fully erupted",
+        "the same tall spire starting to crack",
+        "the spire shattering into falling ice shards"
+      ]
+    },
+    "kagero_kunai": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "h": 60,
+      "desc": "a spinning black steel kunai throwing knife pointing toward the RIGHT with a purple shadow trail behind it",
+      "frames": [
+        "kunai, trail",
+        "kunai slightly rotated",
+        "kunai, longer trail",
+        "kunai, bright glint"
+      ]
+    }
   },
   "stages": {
     "market": "A wide side-view 2D fighting game stage background: a rainy East Asian neon night market street at night, rows of food stalls with glowing lanterns and neon signs (abstract shapes, NO readable text), a crowd of silhouetted spectators behind a low railing in the middle distance, wet asphalt street in the foreground reflecting neon colors. The ground plane occupies the bottom 22% of the image and is flat and empty (no characters, no objects) so fighters can stand on it. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
-    "beach": "A wide side-view 2D fighting game stage background: a seaside stone plaza in Brazil at sunset, colorful houses on green hills, palm trees, the ocean glittering on the horizon, a circle of silhouetted spectators and musicians with drums and berimbau standing on the left and right sides in the middle distance. The ground plane (worn stone tiles) occupies the bottom 22% of the image and is flat and empty in the center so fighters can stand on it. NO readable text. Painted late-1990s arcade fighting game background art, rich detail, warm cinematic lighting."
+    "beach": "A wide side-view 2D fighting game stage background: a seaside stone plaza in Brazil at sunset, colorful houses on green hills, palm trees, the ocean glittering on the horizon, a circle of silhouetted spectators and musicians with drums and berimbau standing on the left and right sides in the middle distance. The ground plane (worn stone tiles) occupies the bottom 22% of the image and is flat and empty in the center so fighters can stand on it. NO readable text. Painted late-1990s arcade fighting game background art, rich detail, warm cinematic lighting.",
+    "steppe": "A wide side-view 2D fighting game stage background: a Mongolian grassland festival at bright midday, rolling green hills under a vast blue sky with big clouds, white round ger tents, colorful prayer flags on ropes, horses and a cheering crowd in traditional robes standing in a half circle in the middle distance, trampled grass and dirt ground in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "harbor": "A wide side-view 2D fighting game stage background: a snowy arctic fishing harbor at blue dusk, green aurora in the sky, red and yellow wooden houses on the shore, fishing boats frozen in the ice, a small crowd in thick parkas with lanterns in the middle distance, packed snow on a wide wooden pier in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "rooftop": "A wide side-view 2D fighting game stage background: rooftops of a Japanese castle town at night under a huge full moon, a castle keep on the hill, paper lanterns, cherry blossom petals drifting, dark tiled roofs stretching into the distance, the foreground is a wide flat tiled rooftop. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "temple": "A wide side-view 2D fighting game stage background: a misty mountain temple courtyard at dawn, red lacquered pillars and curved golden roofs, bronze incense burners with smoke, pine trees and distant peaks above the clouds, robed monks watching quietly on the steps in the middle distance, worn stone tiles in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "gym": "A wide side-view 2D fighting game stage background: a gritty underground boxing arena at night, a boxing ring with ropes in the background, hanging heavy bags, bright spotlights and haze, a roaring crowd silhouetted behind barriers in the middle distance, a dark polished concrete floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "stadium": "A wide side-view 2D fighting game stage background: an open-air Thai kickboxing stadium on a warm tropical night, a raised ring with ropes in the background, colorful string lights, palm trees and golden temple roofs in the distance, a lively crowd in the stands in the middle distance, a smooth wooden floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting."
+  },
+  "templates": {
+    "idle": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "fighting stance, weight centered",
+        "chest sinks slightly, knees bend a little more",
+        "lowest point of the breath, shoulders down",
+        "rising back up",
+        "highest point, shoulders slightly up",
+        "almost identical to frame 1 (loop)"
+      ]
+    },
+    "walk": {
+      "grid": [
+        2,
+        4
+      ],
+      "frames": [
+        "walking forward to the right keeping the guard up: front foot stepping forward",
+        "weight shifting onto the front foot",
+        "rear foot sliding forward past the front foot",
+        "rear foot landing in front",
+        "weight settling, knees bent",
+        "front foot stepping forward again",
+        "rear foot dragging forward",
+        "back to the starting guard (loop)"
+      ]
+    },
+    "crouch": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "half crouch, knees bending, guard up",
+        "full crouch: deep squat, guard up protecting the face",
+        "same full crouch, very slightly lower (breathing)"
+      ]
+    },
+    "jump": {
+      "grid": [
+        2,
+        4
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "pre-jump squat, knees deeply bent, arms swung back",
+        "take-off: legs extended pushing off, arms swinging up",
+        "rising: knees pulled up toward the chest",
+        "apex: compact tucked pose",
+        "starting to fall: legs unfolding downward",
+        "falling: legs straight down, arms out for balance",
+        "landing squat absorbing the impact"
+      ]
+    },
+    "lp": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "quick jab: FRONT fist half extended toward the right",
+        "jab fully extended at head height toward the right",
+        "front arm snapping back to guard"
+      ]
+    },
+    "hp": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "wind-up: rear shoulder pulled back, torso twisting",
+        "rear arm driving forward, hips rotating",
+        "full extension: heavy strike fully extended at head height toward the right, impact pose",
+        "holding the extended strike, starting to recover",
+        "arm pulling back to guard"
+      ]
+    },
+    "lk": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "front knee lifted, foot chambered",
+        "quick kick fully extended at waist height toward the right",
+        "kicking leg retracting"
+      ]
+    },
+    "hk": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "pivot on the front foot, rear knee raised and chambered",
+        "hips turning, leg whipping around",
+        "high kick fully extended at head height toward the right",
+        "follow-through, leg passing",
+        "leg coming down, returning to stance"
+      ]
+    },
+    "crp": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "crouching guard (deep squat, hands up)",
+        "crouching jab: still squatting, front fist fully extended straight toward the right at chest height",
+        "crouching, arm retracting"
+      ]
+    },
+    "crk": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "crouching guard (deep squat, hands up)",
+        "still crouching, front leg kicking straight out low along the floor toward the right at ankle height",
+        "crouching, leg retracting"
+      ]
+    },
+    "sweep": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "dropping very low, one hand touching the floor, rear leg starting to swing",
+        "spinning sweep: leg extending along the floor toward the right",
+        "sweep fully extended: leg straight along the floor to the right, body very low",
+        "leg continuing around behind",
+        "back to a crouching guard"
+      ]
+    },
+    "jp": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "in mid-air: tucked airborne pose, hands up, knees bent",
+        "in mid-air: diving strike, arm extending diagonally down toward the right",
+        "in mid-air: strike fully extended diagonally downward to the right, knees tucked"
+      ]
+    },
+    "jk": {
+      "grid": [
+        2,
+        2
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "in mid-air: tucked airborne pose, knees bent",
+        "in mid-air: flying kick extending",
+        "in mid-air: flying side kick fully extended diagonally downward to the right, other leg tucked"
+      ]
+    },
+    "block": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "standing block: forearms crossed in front of face and chest, body hunched and braced",
+        "standing block being pushed back, wincing",
+        "crouching block: low squat, forearms crossed guarding the head",
+        "crouching block being pushed back, wincing",
+        "standing block, braced (same as frame 2)"
+      ]
+    },
+    "hit": {
+      "grid": [
+        2,
+        4
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "hit in the face: head snapped back, upper body leaning back, pain expression",
+        "staggering backward, arms loose",
+        "hit in the stomach: doubled over forward clutching the gut",
+        "still doubled over, stumbling",
+        "crouching and hit: head snapped back while still squatting",
+        "crouching, recoiling",
+        "dizzy: standing wobbly, arms dangling, eyes dazed, slack mouth"
+      ]
+    },
+    "down": {
+      "grid": [
+        2,
+        4
+      ],
+      "frames": [
+        "neutral fighting stance (size reference)",
+        "knocked off the feet: airborne, blown backward to the LEFT, arms and legs flung forward toward the right, pain face",
+        "falling backward, body almost horizontal",
+        "back slamming into the ground",
+        "lying flat on the back on the ground, head to the left, feet to the right",
+        "sitting up on the ground",
+        "kneeling on one knee, pushing up",
+        "rising to the feet, half standing"
+      ]
+    },
+    "throw": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "lunging forward, both hands reaching toward the right to grab an (invisible) opponent",
+        "gripping an invisible opponent with both hands at chest height",
+        "driving a knee strike forward while still gripping",
+        "shoving forward with both palms extended toward the right",
+        "follow-through, palms extended, weight forward"
+      ]
+    },
+    "win": {
+      "grid": [
+        2,
+        3
+      ],
+      "frames": [
+        "neutral fighting stance",
+        "relaxing the stance, standing up tall",
+        "confident victory pose",
+        "raising one fist toward the sky",
+        "fist raised high, triumphant",
+        "holding the triumphant pose"
+      ]
+    }
   }
 }

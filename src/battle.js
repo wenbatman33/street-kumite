@@ -71,6 +71,7 @@ export class Battle {
     this.fighters.forEach((f, i) => {
       const raw = this.controllers[i].poll(this, f, this.fighters[1 - i]);
       f.input.feed(raw);
+      f.input.updateCharge(f.facing);
     });
     this.fx.update();
     this.msgs = this.msgs.filter((m) => ++m.t < m.life);
@@ -95,6 +96,7 @@ export class Battle {
     this.clampFighters();
     if (fighting || this.phase === 'ko') this.resolveHits();
     this.updateFacing();
+    this.releaseOrphanThrow();
     this.trackFrameData();
     this.trainingTick();
   }
@@ -171,20 +173,22 @@ export class Battle {
         if (d.state === 'airHit' && !(h.juggle && d.juggle < 4 && !d.ko)) continue;
         const hb = a.hitRect(h);
         const hit = hurts.find((r) => overlap(r, hb));
-        if (hit) { events.push({ a, d, i, h, hb, hr: hit }); break; }
+        if (hit) { events.push({ a, d, i, h, hb, hr: hit, mv: a.move }); break; }
       }
     }
     // 同時命中（相殺）一起處理
     for (const e of events) this.applyHit(e);
   }
 
-  applyHit({ a, d, i, h, hb, hr }) {
-    a.hitDone.add(i);
+  applyHit({ a, d, i, h, hb, hr, mv }) {
+    // 互打（相殺）時，先處理的那下可能已經把攻擊方打出招式狀態，所以用偵測當下的招式
+    if (a.hitDone) a.hitDone.add(i);
     a.contact = true;
     const dir = a.facing;
     const res = d.receive(a, h, { x: a.x, owner: a });
-    a.hitstop = d.hitstop;
-    if (res === 'hit' && (a.move.stopOnHit === true || (Array.isArray(a.move.stopOnHit) && a.mt >= a.move.stopOnHit[0] && a.mt <= a.move.stopOnHit[1]))) a.stopped = true;
+    a.hitstop = Math.max(a.hitstop, d.hitstop);
+    const soh = mv && mv.stopOnHit;
+    if (res === 'hit' && a.move === mv && (soh === true || (Array.isArray(soh) && a.mt >= soh[0] && a.mt <= soh[1]))) a.stopped = true;
     d.pushFrom = a;
     const px = (Math.max(hb.x0, hr.x0) + Math.min(hb.x1, hr.x1)) / 2;
     const py = (Math.max(hb.y0, hr.y0) + Math.min(hb.y1, hr.y1)) / 2;
@@ -193,7 +197,13 @@ export class Battle {
 
   contactFx(a, d, res, h, px, py, dir) {
     const strength = h.spark || h.hitstop || 'M';
-    if (res === 'block') {
+    if (res === 'armor') {
+      this.fx.spark(px, py, 'block', dir, strength);
+      this.fx.ring(d.x, 170, '#ffb347', 1.2);
+      this.fx.text(d.x, 330, 'ARMOR', '#ffb347', 24);
+      audio.sfx('block');
+      audio.sfx('hitM');
+    } else if (res === 'block') {
       this.fx.spark(px, py, 'block', dir, strength);
       audio.sfx('block');
     } else {
@@ -276,13 +286,13 @@ export class Battle {
     const p = {
       owner: f, spec, kind: spec.kind,
       x: f.x + f.facing * spec.x, y: f.y + spec.y,
-      vx: spec.vx * f.facing, facing: f.facing,
+      vx: spec.vx * f.facing, vy: spec.vy || 0, facing: f.facing,
       life: spec.life, t: 0, scale: spec.scale || 1,
       hits: spec.multi ? spec.multi.count : 1, cool: 0, hp: spec.multi ? spec.multi.count : 1,
     };
     p.px = p.x;
     this.projectiles.push(p);
-    audio.sfx(spec.super ? 'superball' : 'fireball');
+    audio.sfx(spec.sound || (spec.super ? 'superball' : 'fireball'));
   }
 
   projRect(p) {
@@ -294,7 +304,8 @@ export class Battle {
     for (const p of this.projectiles) {
       if (p.owner.hitstop > 0 && p.t === 0) continue;
       p.t++;
-      if (p.cool > 0) { p.cool--; p.x += p.vx * 0.25; } else p.x += p.vx;
+      if (p.cool > 0) { p.cool--; p.x += p.vx * 0.25; } else { p.x += p.vx; p.y += p.vy; }
+      if (p.vy && p.y <= 4) { p.dead = true; this.fx.spark(p.x, 6, 'block', p.facing, 'L'); }   // 斜射道具落地
       if (p.t > p.life || p.x < -200 || p.x > LAYOUT.stageW + 200) p.dead = true;
       if (Math.abs(p.x - (this.camX + VIEW_W / 2)) > VIEW_W / 2 + 160) p.dead = true;
     }
@@ -303,7 +314,7 @@ export class Battle {
     for (let i = 0; i < ps.length; i++) {
       for (let j = i + 1; j < ps.length; j++) {
         const A = ps[i], B = ps[j];
-        if (A.dead || B.dead || A.owner === B.owner) continue;
+        if (A.dead || B.dead || A.owner === B.owner || A.spec.noClash || B.spec.noClash) continue;
         if (overlap(this.projRect(A), this.projRect(B))) {
           const n = Math.min(A.hp, B.hp);
           A.hp -= n; B.hp -= n;
@@ -318,12 +329,13 @@ export class Battle {
     if (this.phase === 'fight' || this.phase === 'ko') {
       for (const p of ps) {
         if (p.dead || p.cool > 0) continue;
+        if (p.spec.activeT && (p.t < p.spec.activeT[0] || p.t > p.spec.activeT[1])) continue;
         const d = this.fighters[1 - p.owner.side];
         if (['knockdown', 'getup', 'ko', 'thrown', 'intro', 'win'].includes(d.state)) continue;
         if (d.state === 'move' && (d.invuln('strike') || d.invuln('proj'))) continue;
         const last = p.spec.multi && p.hits === 1;
         const hit = last ? { ...p.spec.hit, ...p.spec.multi.last } : p.spec.hit;
-        if (d.state === 'airHit' && !(p.spec.super && d.juggle < 6)) continue;
+        if (d.state === 'airHit' && !((p.spec.super || p.spec.juggle) && d.juggle < 6)) continue;
         const r = this.projRect(p);
         const hr = d.hurtboxes().find((h) => overlap(h, r));
         if (!hr) continue;
@@ -343,9 +355,9 @@ export class Battle {
   }
 
   // ---------- 投技 ----------
-  canThrow(a) {
+  canThrow(a, m = a.def.throw) {
     const d = this.fighters[1 - a.side];
-    const T = a.def.throw;
+    const T = m;
     if (a.airborne || d.airborne) return false;
     if (!['stand', 'crouch', 'move', 'landing', 'prejump', 'dizzy'].includes(d.state)) return false;
     if (d.throwInv > 0 || d.invuln('throw') || d.invuln('all')) return false;
@@ -353,10 +365,13 @@ export class Battle {
     return Math.abs(d.x - a.x) <= T.range;
   }
 
-  tryGrab(a) {
-    if (!this.canThrow(a)) return false;
+  tryGrab(a, m = a.def.throw) {
+    if (!this.canThrow(a, m)) return false;
     const d = this.fighters[1 - a.side];
-    const T = a.def.throw.onGrab;
+    const T = m.onGrab;
+    a.grabMove = m;
+    a.vx = 0;
+    a.stopped = true;
     a.grabbed = true;
     a.throwing = d;
     a.seq = T.seq;
@@ -373,9 +388,21 @@ export class Battle {
   tickThrow(a) {
     const d = a.throwing;
     if (!d || d.state !== 'thrown') return;
-    const T = a.def.throw.onGrab;
-    const tx = a.x + a.facing * 90;
-    d.x += (tx - d.x) * 0.5;
+    const T = (a.grabMove || a.def.throw).onGrab;
+    if (T.path) {
+      // 依關鍵影格移動被投者：[tick, 前方距離, 高度]
+      const P = T.path;
+      let k = P.length - 1;
+      for (let i = 0; i < P.length - 1; i++) if (a.mt < P[i + 1][0]) { k = i; break; }
+      const [t0, x0, y0] = P[k], [t1, x1, y1] = P[Math.min(k + 1, P.length - 1)];
+      const u = t1 > t0 ? Math.max(0, Math.min(1, (a.mt - t0) / (t1 - t0))) : 1;
+      d.x = a.x + a.facing * (x0 + (x1 - x0) * u);
+      d.y = y0 + (y1 - y0) * u;
+      if (Math.abs(x1 - x0) > 1 && Math.sign(x1) !== Math.sign(x0)) d.facing = a.mt < (t0 + t1) / 2 ? -a.facing : a.facing;
+    } else {
+      const tx = a.x + a.facing * 90;
+      d.x += (tx - d.x) * 0.5;
+    }
     if (a.mt === T.hitT) {
       a.throwing = null;
       const dmg = this.noDamage(d) ? 0 : T.dmg;
@@ -390,13 +417,47 @@ export class Battle {
       d.setState('airHit', { airReset: false, inKD: true, ko: false });
       d.vx = a.facing * T.launch[0];
       d.vy = T.launch[1];
-      d.y = 0.01;
-      d.hitstop = 6; a.hitstop = 6;
+      d.y = Math.max(0.01, d.y);
+      d.hitstop = T.hitstop || 6; a.hitstop = T.hitstop || 6;
+      if (T.shake) this.fx.shake(T.shake);
+      if (T.dust) this.fx.dust(d.x, 1.6);
+    }
+  }
+
+  // 瞬移：mode = fwd（往前）/ behind（到對手背後）/ back（往後）
+  teleport(f, spec) {
+    const o = this.fighters[1 - f.side];
+    const from = f.x;
+    let x;
+    if (spec.mode === 'behind') x = o.x + Math.sign(o.x - f.x || f.facing) * (spec.dist || 110);
+    else if (spec.mode === 'back') x = f.x - f.facing * (spec.dist || 260);
+    else x = f.x + f.facing * (spec.dist || 220);
+    f.x = Math.max(LAYOUT.edge, Math.min(LAYOUT.stageW - LAYOUT.edge, x));
+    f.px = f.x;
+    if (spec.mode === 'behind' || spec.face) f.facing = Math.sign(o.x - f.x) || f.facing;   // 繞到背後要轉身面對
+    this.smoke(from);
+    this.smoke(f.x);
+    audio.sfx('rise');
+  }
+
+  smoke(x) {
+    for (let i = 0; i < 8; i++) this.fx.list.push({ type: 'dust', x: x + (Math.random() - 0.5) * 70, y: 40 + Math.random() * 200, vx: (Math.random() - 0.5) * 2, vy: 0.8 + Math.random(), r: 18 + Math.random() * 16, t: 0, life: 30, color: '#9b7bd8' });
+  }
+
+  // 保險：投技方已不在抓取狀態（例如被別的東西中斷）時，放開被投者
+  releaseOrphanThrow() {
+    for (const d of this.fighters) {
+      if (d.state !== 'thrown') continue;
+      const a = d.thrownBy;
+      if (a && a.state === 'move' && a.grabbed && a.throwing === d) continue;
+      d.setState('airHit', { airReset: false, inKD: true, ko: false });
+      d.vx = 0; d.vy = 4; d.y = Math.max(d.y, 0.01);
     }
   }
 
   techThrow(a, d) {
     if (!a || !a.grabbed) return;
+    if ((a.grabMove || a.def.throw).onGrab.noTech) return;   // 指令投無法拆
     a.grabbed = false;
     a.throwing = null;
     const dir = Math.sign(d.x - a.x) || -a.facing;

@@ -60,7 +60,13 @@ export const MOTIONS = {
   DP: { seq: [[6, 3], [2], [3]], win: 18 },
   QCF: { seq: [[2], [3], [6]], win: 16 },
   QCB: { seq: [[2], [1], [4]], win: 16 },
+  SPD: { spin: true, win: 40 },              // 360：前、下、後、上四個方向都要轉到（順序不拘）
+  CBF: { charge: 'B', to: [6, 3, 9] },       // 蓄力：按住後 → 前
+  CDU: { charge: 'D', to: [7, 8, 9] },       // 蓄力：按住下 → 上
 };
+export const CHARGE_TICKS = 40;              // 蓄力需要按住的 tick 數
+const CHARGE_GRACE = 10;                     // 放開後仍算有蓄力的寬限 tick
+const SPIN_GROUPS = [[6, 3, 9], [2, 1, 3], [4, 1, 7], [7, 8, 9]];
 
 export class PlayerInput {
   constructor() { this.reset(); }
@@ -73,6 +79,26 @@ export class PlayerInput {
     this.press = {};                 // 按鍵 → 按下的 frame（緩衝用）
     this.dir = 5;
     this.log = [];                   // 訓練模式輸入紀錄
+    this.cb = 0; this.cd = 0;        // 目前連續按住「後」「下」的 tick 數
+    this.cbLast = 0; this.cbEnd = -99; this.cdLast = 0; this.cdEnd = -99;
+  }
+
+  // 每 tick 依角色面向更新蓄力（面向會變，所以由角色呼叫）
+  updateCharge(facing) {
+    const d = rel(this.dir, facing);
+    if (d === 1 || d === 4 || d === 7) this.cb++;
+    else { if (this.cb) { this.cbLast = this.cb; this.cbEnd = this.frame; } this.cb = 0; }
+    if (d <= 3) this.cd++;
+    else { if (this.cd) { this.cdLast = this.cd; this.cdEnd = this.frame; } this.cd = 0; }
+  }
+
+  charged(kind) {
+    if (kind === 'B') return this.cb >= CHARGE_TICKS || (this.cbLast >= CHARGE_TICKS && this.frame - this.cbEnd <= CHARGE_GRACE);
+    return this.cd >= CHARGE_TICKS || (this.cdLast >= CHARGE_TICKS && this.frame - this.cdEnd <= CHARGE_GRACE);
+  }
+
+  useCharge(kind) {
+    if (kind === 'B') { this.cb = 0; this.cbLast = 0; } else { this.cd = 0; this.cdLast = 0; }
   }
 
   feed(raw) {
@@ -122,6 +148,17 @@ export class PlayerInput {
 
   motion(name, facing) {
     const m = MOTIONS[name];
+    if (m.charge) return this.charged(m.charge) && m.to.includes(rel(this.dir, facing));
+    if (m.spin) {
+      // 視窗內出現過的方向要涵蓋前、下、後、上
+      const seen = new Set();
+      for (let i = this.hist.length - 1; i >= 0; i--) {
+        const end = i === this.hist.length - 1 ? this.frame : this.hist[i + 1].t - 1;
+        if (this.frame - end > m.win) break;
+        seen.add(rel(this.hist[i].d, facing));
+      }
+      return SPIN_GROUPS.every((g) => g.some((d) => seen.has(d)));
+    }
     const seq = m.seq;
     let k = seq.length - 1;
     for (let i = this.hist.length - 1; i >= 0; i--) {

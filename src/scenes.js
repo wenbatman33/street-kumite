@@ -107,7 +107,12 @@ function menuList(g, items, sel, x, y, gap = 58, t = 0) {
 
 // ---------- 標題 ----------
 export class TitleScene {
-  constructor(app) { this.app = app; this.t = 0; }
+  constructor(app) {
+    this.app = app; this.t = 0;
+    // 標題畫面隨機挑兩位已就緒的角色
+    const ids = readyChars().sort(() => Math.random() - 0.5);
+    this.pair = [ids[0] || 'tora', ids[1] || 'vera'];
+  }
   update(ev) {
     this.t++;
     if (ev.any.ok || ev.any.back) { audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
@@ -115,8 +120,8 @@ export class TitleScene {
   draw(g) {
     const t = this.t;
     backdrop(g, t, 'market', 0.5);
-    portrait(g, 'tora', 270, 150, 600, false, 0.95);
-    portrait(g, 'vera', VIEW_W - 270, 150, 600, true, 0.95);
+    portrait(g, this.pair[0], 270, 150, 600, false, 0.95);
+    portrait(g, this.pair[1], VIEW_W - 270, 150, 600, true, 0.95);
     g.fillStyle = 'rgba(0,0,0,0.35)';
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     logo(g, VIEW_W / 2, 250, 1);
@@ -131,7 +136,8 @@ export class MenuScene {
   constructor(app) {
     this.app = app; this.t = 0; this.sel = 0;
     this.items = [
-      { label: '1P 對戰 CPU', go: () => new SelectScene(app, 'arcade') },
+      { label: '街機模式（連戰全員）', go: () => new SelectScene(app, 'ladder') },
+      { label: '自由對戰 CPU', go: () => new SelectScene(app, 'arcade') },
       { label: '2P 本機雙人對戰', go: () => new SelectScene(app, 'versus') },
       { label: '訓練模式', go: () => new SelectScene(app, 'training') },
       { label: '操作說明・招式表', go: () => new ControlsScene(app, this) },
@@ -147,29 +153,43 @@ export class MenuScene {
     if (e.back) { audio.sfx('back'); this.app.go(new TitleScene(this.app)); }
   }
   click(x, y) {
-    this.items.forEach((it, i) => { if (Math.abs(y - (330 + i * 64)) < 26 && Math.abs(x - VIEW_W / 2) < 260) { this.sel = i; this.update({ any: { ok: true } }); } });
+    this.items.forEach((it, i) => { if (Math.abs(y - (300 + i * 60)) < 26 && Math.abs(x - VIEW_W / 2) < 260) { this.sel = i; this.update({ any: { ok: true } }); } });
   }
   draw(g) {
     backdrop(g, this.t, 'beach', 0.66);
     logo(g, VIEW_W / 2, 150, 0.62);
-    menuList(g, this.items, this.sel, VIEW_W / 2, 330, 64);
+    menuList(g, this.items, this.sel, VIEW_W / 2, 300, 60);
     text(g, '↑↓ 選擇　Enter / U 確定　Esc 返回', VIEW_W / 2, 680, { size: 16, color: '#9a92aa', font: FONT_TC, outline: null });
   }
 }
 
 // ---------- 選角 ----------
+// 只列出素材已就緒的角色／舞台（新角色做完一位就會出現）
+const readyChars = () => CHAR_IDS.filter((id) => ASSETS.chars[id]);
+const readyStages = () => STAGE_IDS.filter((id) => ASSETS.stages[id]);
+const HOME = { tora: 'market', vera: 'beach', baatar: 'steppe', skye: 'harbor', kagero: 'rooftop', shen: 'temple', drake: 'gym', kanya: 'stadium' };
+
 export class SelectScene {
   constructor(app, mode, prev) {
     this.app = app; this.mode = mode; this.t = 0;
-    this.cur = [prev ? CHAR_IDS.indexOf(prev.chars[0]) : 0, prev ? CHAR_IDS.indexOf(prev.chars[1]) : 1];
+    this.ids = readyChars();
+    this.stages = readyStages();
+    const idx = (id, d) => { const i = this.ids.indexOf(id); return i >= 0 ? i : d; };
+    this.cur = [prev ? idx(prev.chars[0], 0) : 0, prev ? idx(prev.chars[1], 1) : Math.min(1, this.ids.length - 1)];
     this.done = [false, false];
-    this.stage = prev ? STAGE_IDS.indexOf(prev.stage) : 0;
+    this.stage = prev ? Math.max(0, this.stages.indexOf(prev.stage)) : 0;
     this.phase = 'chars';   // chars → stage
     this.active = 0;        // 1P 模式：先選自己再選對手
   }
+  toStage() {
+    this.phase = 'stage';
+    // 預設對手（或 2P）的主場
+    const home = this.stages.indexOf(HOME[this.ids[this.cur[1]]]);
+    if (home >= 0) this.stage = home;
+  }
   update(ev) {
     this.t++;
-    const n = CHAR_IDS.length;
+    const n = this.ids.length;
     if (this.phase === 'chars') {
       const versus = this.mode === 'versus';
       const evs = versus ? [ev.p1, ev.p2] : [ev.any, ev.any];
@@ -180,8 +200,11 @@ export class SelectScene {
           if (e.back) { this.done[i] = false; audio.sfx('back'); if (!versus && i === 1) this.active = 1; }
           continue;
         }
+        const cols = Math.min(n, 8);
         if (e.left) { this.cur[i] = (this.cur[i] + n - 1) % n; audio.sfx('move'); }
         if (e.right) { this.cur[i] = (this.cur[i] + 1) % n; audio.sfx('move'); }
+        if (e.up && n > cols) { this.cur[i] = (this.cur[i] + n - cols) % n; audio.sfx('move'); }
+        if (e.down && n > cols) { this.cur[i] = (this.cur[i] + cols) % n; audio.sfx('move'); }
         if (e.ok) { this.done[i] = true; audio.sfx('ok'); if (!versus && i === 0) this.active = 1; }
         if (e.back) {
           audio.sfx('back');
@@ -189,73 +212,100 @@ export class SelectScene {
           else { this.app.go(new MenuScene(this.app)); return; }
         }
       }
-      if (this.done[0] && this.done[1]) this.phase = 'stage';
+      if (this.mode === 'ladder' && this.done[0]) { this.startLadder(); return; }
+      if (this.done[0] && this.done[1]) this.toStage();
       return;
     }
     const e = ev.any;
-    if (e.left) { this.stage = (this.stage + STAGE_IDS.length - 1) % STAGE_IDS.length; audio.sfx('move'); }
-    if (e.right) { this.stage = (this.stage + 1) % STAGE_IDS.length; audio.sfx('move'); }
+    const m = this.stages.length;
+    if (e.left) { this.stage = (this.stage + m - 1) % m; audio.sfx('move'); }
+    if (e.right) { this.stage = (this.stage + 1) % m; audio.sfx('move'); }
     if (e.back) { this.phase = 'chars'; this.done = [false, false]; this.active = 0; audio.sfx('back'); }
     if (e.ok) {
       audio.sfx('ok');
-      const setup = { mode: this.mode, chars: [CHAR_IDS[this.cur[0]], CHAR_IDS[this.cur[1]]], stage: STAGE_IDS[this.stage] };
+      const setup = { mode: this.mode, chars: [this.ids[this.cur[0]], this.ids[this.cur[1]]], stage: this.stages[this.stage] };
       this.app.go(this.mode === 'training' ? new BattleScene(this.app, setup) : new VSScene(this.app, setup));
     }
+  }
+  // 街機模式：其他角色隨機排成連戰順序，舞台用對手主場
+  startLadder() {
+    const me = this.ids[this.cur[0]];
+    const ladder = this.ids.filter((id) => id !== me).sort(() => Math.random() - 0.5);
+    if (!ladder.length) ladder.push(me);
+    this.app.go(new VSScene(this.app, ladderSetup(me, ladder, 0, this.stages)));
+  }
+  slotPos(k) {
+    const n = this.ids.length;
+    const size = Math.min(120, Math.floor(1120 / n) - 14);
+    const gap = size + 14;
+    return { x: VIEW_W / 2 - (n * gap) / 2 + k * gap + gap / 2, y: 625, size };
   }
   click(x, y) {
     if (this.phase !== 'chars') { this.update({ any: { ok: true }, p1: {}, p2: {} }); return; }
     const i = this.mode === 'versus' ? (x < VIEW_W / 2 ? 0 : 1) : this.active;
-    const n = CHAR_IDS.length;
-    const slot = Math.floor((x - (VIEW_W / 2 - n * 70)) / 140);
-    if (y > 560 && slot >= 0 && slot < n) { this.cur[i] = slot; this.done[i] = true; if (this.mode !== 'versus' && i === 0) this.active = 1; if (this.done[0] && this.done[1]) this.phase = 'stage'; }
+    this.ids.forEach((id, k) => {
+      const p = this.slotPos(k);
+      if (Math.abs(x - p.x) < p.size / 2 && Math.abs(y - p.y) < p.size / 2) {
+        this.cur[i] = k; this.done[i] = true;
+        if (this.mode !== 'versus' && i === 0) this.active = 1;
+        if (this.done[0] && this.done[1]) this.toStage();
+      }
+    });
   }
   draw(g) {
     const t = this.t;
-    backdrop(g, t, STAGE_IDS[this.stage], 0.7);
-    const title = { arcade: '1P 對戰 CPU', versus: '2P 對戰', training: '訓練模式' }[this.mode];
+    const hs = HOME[this.ids[this.cur[this.mode === 'ladder' ? 0 : this.active]]];
+    backdrop(g, t, this.phase === 'stage' ? this.stages[this.stage] : this.stages.includes(hs) ? hs : this.stages[0], 0.7);
+    const title = { ladder: '街機模式・連戰全員', arcade: '自由對戰 CPU', versus: '2P 對戰', training: '訓練模式' }[this.mode];
     text(g, 'SELECT YOUR FIGHTER', VIEW_W / 2, 48, { size: 34, color: '#ffd84a' });
     text(g, title, VIEW_W / 2, 88, { size: 20, color: '#fff', font: FONT_TC });
     for (let i = 0; i < 2; i++) {
-      const id = CHAR_IDS[this.cur[i]];
+      if (this.mode === 'ladder' && i === 1) {
+        text(g, `連戰 ${Math.max(1, this.ids.length - 1)} 位對手`, VIEW_W - 290, 300, { size: 34, color: '#ffd84a', font: FONT_TC });
+        text(g, '全部擊敗就通關！', VIEW_W - 290, 350, { size: 20, color: '#fff', font: FONT_TC });
+        continue;
+      }
+      const id = this.ids[this.cur[i]];
       const c = CHARS[id];
       const x = i === 0 ? 290 : VIEW_W - 290;
       const bob = this.done[i] ? 0 : Math.sin(t * 0.08) * 4;
-      portrait(g, id, x, 130 + bob, 420, i === 1);
+      portrait(g, id, x, 130 + bob, 400, i === 1);
       const tag = i === 0 ? '1P' : this.mode === 'versus' ? '2P' : 'CPU';
       text(g, tag, x, 128, { size: 26, color: i === 0 ? '#ff5a3c' : '#3cb4ff' });
-      text(g, c.name, x, 470, { size: 46, color: '#fff' });
-      text(g, `${c.nameZh}・${c.style}`, x, 512, { size: 20, color: c.color, font: FONT_TC });
+      text(g, c.name, x, 455, { size: 44, color: '#fff' });
+      text(g, `${c.nameZh}・${c.style}`, x, 496, { size: 20, color: c.color, font: FONT_TC });
+      text(g, c.blurb, x, 528, { size: 14, color: '#d8d0e6', font: FONT_TC, outline: '#000', lw: 4, shadow: false });
       if (this.done[i]) text(g, 'READY!', x, 300, { size: 44, color: '#7dff6b', lw: 8 });
       else if (this.mode === 'versus' || i === this.active) {
         if (t % 40 < 28) text(g, '◀　▶', x, 300, { size: 34, color: '#ffffffaa', outline: null });
       }
     }
     // 角色格
-    const n = CHAR_IDS.length;
-    CHAR_IDS.forEach((id, k) => {
-      const x = VIEW_W / 2 - n * 70 + k * 140 + 70, y = 620;
+    this.ids.forEach((id, k) => {
+      const { x, y, size } = this.slotPos(k);
+      const h = size / 2;
       g.fillStyle = '#120a18';
-      g.fillRect(x - 60, y - 60, 120, 120);
+      g.fillRect(x - h, y - h, size, size);
       const img = ASSETS.portraits[id];
-      if (img) { g.save(); g.beginPath(); g.rect(x - 58, y - 58, 116, 116); g.clip(); g.drawImage(img, x - 80, y - 66, 160, 160 * img.height / img.width); g.restore(); }
+      if (img) { g.save(); g.beginPath(); g.rect(x - h + 2, y - h + 2, size - 4, size - 4); g.clip(); g.drawImage(img, x - h * 1.35, y - h * 1.1, size * 1.35, size * 1.35 * img.height / img.width); g.restore(); }
       for (let i = 0; i < 2; i++) {
         if (this.cur[i] === k) {
           g.strokeStyle = i === 0 ? '#ff5a3c' : '#3cb4ff';
           g.lineWidth = 5;
-          g.strokeRect(x - 60 - i * 6, y - 60 - i * 6, 120 + i * 12, 120 + i * 12);
+          g.strokeRect(x - h - i * 6, y - h - i * 6, size + i * 12, size + i * 12);
         }
       }
     });
     if (this.phase === 'stage') {
       g.fillStyle = 'rgba(0,0,0,0.7)';
       g.fillRect(0, 300, VIEW_W, 140);
-      const s = STAGES[STAGE_IDS[this.stage]];
+      const s = STAGES[this.stages[this.stage]];
       text(g, 'STAGE SELECT', VIEW_W / 2, 330, { size: 24, color: '#ffd84a' });
       text(g, `◀  ${s.nameZh}  ${s.name}  ▶`, VIEW_W / 2, 380, { size: 34, color: '#fff', font: FONT_TC });
       text(g, '確定開始', VIEW_W / 2, 420, { size: 16, color: '#c9c2d8', font: FONT_TC, outline: null });
     } else {
       const hint = this.mode === 'versus' ? '1P：A/D 選、T 確定　　2P：←/→ 選、I 確定' : this.active === 0 ? '選擇你的角色' : '選擇對手';
-      text(g, hint, VIEW_W / 2, 700, { size: 16, color: '#c9c2d8', font: FONT_TC, outline: null });
+      text(g, hint, VIEW_W / 2, 702, { size: 16, color: '#c9c2d8', font: FONT_TC, outline: null });
     }
   }
 }
@@ -286,6 +336,38 @@ export class VSScene {
     const s = t < 20 ? 3 - t / 10 : 1 + Math.sin(t * 0.2) * 0.03;
     text(g, 'VS', VIEW_W / 2, VIEW_H / 2, { size: 130 * s, color: '#ffd84a', lw: 14 });
     text(g, STAGES[this.setup.stage].nameZh, VIEW_W / 2, 690, { size: 20, color: '#fff', font: FONT_TC });
+    if (this.setup.ladder) text(g, `STAGE ${this.setup.stageNo + 1} / ${this.setup.ladder.length}`, VIEW_W / 2, 90, { size: 34, color: '#fff' });
+  }
+}
+
+// 街機模式下一戰的設定（後段難度自動 +1）
+function ladderSetup(me, ladder, n, stages) {
+  const opp = ladder[n];
+  const home = HOME[opp];
+  const all = stages || readyStages();
+  return { mode: 'arcade', ladder, stageNo: n, chars: [me, opp], stage: all.includes(home) ? home : all[n % all.length] };
+}
+
+// ---------- 通關 ----------
+export class EndingScene {
+  constructor(app, setup) { this.app = app; this.setup = setup; this.t = 0; audio.playMusic(1); }
+  update(ev) {
+    this.t++;
+    if (this.t > 90 && (ev.any.ok || ev.any.back)) { audio.stopMusic(); audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
+  }
+  draw(g) {
+    const t = this.t;
+    const id = this.setup.chars[0];
+    backdrop(g, t, HOME[id] && ASSETS.stages[HOME[id]] ? HOME[id] : 'market', 0.55);
+    portrait(g, id, 360, 80 + Math.sin(t * 0.03) * 6, 600);
+    const a = Math.min(1, t / 40);
+    g.globalAlpha = a;
+    text(g, 'CONGRATULATIONS!', 860, 170, { size: 54, color: '#ffd84a' });
+    text(g, `${CHARS[id].name} 全員擊破`, 860, 250, { size: 36, color: '#fff', font: FONT_TC });
+    text(g, `擊敗 ${this.setup.ladder.length} 位對手`, 860, 300, { size: 22, color: CHARS[id].color, font: FONT_TC });
+    text(g, 'THANK YOU FOR PLAYING', 860, 420, { size: 30, color: '#fff' });
+    if (t > 90 && t % 60 < 40) text(g, 'PRESS START', 860, 520, { size: 24, color: '#ffe9a8' });
+    g.globalAlpha = 1;
   }
 }
 
@@ -305,7 +387,7 @@ export class BattleScene {
     this.training = mode === 'training' ? (app.training = app.training || { ...TRAINING_DEFAULT }) : null;
     if (mode === 'versus') p2 = new HumanController([KEYMAPS.p2], [1]);
     else if (mode === 'training') p2 = new DummyController(this.training);
-    else p2 = new AIController(GAME.difficulty);
+    else p2 = new AIController(setup.ladder ? Math.min(3, GAME.difficulty + Math.floor(setup.stageNo / 3)) : GAME.difficulty);
     this.p2Ctrl = p2;
     this.battle = new Battle({ chars: setup.chars.map((id) => CHARS[id]), stage: setup.stage, mode, controllers: [p1, p2], training: this.training });
     if (setup.chars[0] === setup.chars[1]) altAtlasImages(setup.chars[1]);   // 鏡像配色（通常已在閒置時算好）
@@ -448,7 +530,7 @@ class PauseMenu {
   }
   close() { this.s.pause = null; audio.sfx('ok'); }
   update(ev) {
-    if (this.sub) { this.sub.t++; if (ev.any.back || ev.any.ok) this.sub = null; return; }
+    if (this.sub) { this.sub.update({ any: { ...ev.any, back: false, ok: false } }); if (ev.any.back || ev.any.ok) this.sub = null; return; }
     const e = ev.any;
     const it = this.items[this.sel];
     if (e.up) { this.sel = (this.sel + this.items.length - 1) % this.items.length; audio.sfx('move'); }
@@ -482,16 +564,31 @@ class PauseMenu {
 export class ResultScene {
   constructor(app, setup, result) {
     this.app = app; this.setup = setup; this.result = result; this.t = 0; this.sel = 0;
-    this.items = ['再戰一場', '重新選角', '回主選單'];
+    const L = setup.ladder;
+    if (L && result === 0) this.items = [setup.stageNo + 1 < L.length ? `下一戰（${setup.stageNo + 2} / ${L.length}）` : '通關！'];
+    else if (L) this.items = ['CONTINUE（再挑戰）', '回主選單'];
+    else this.items = ['再戰一場', '重新選角', '回主選單'];
     audio.stopMusic();
   }
   update(ev) {
     this.t++;
     const e = ev.any;
-    if (e.up) { this.sel = (this.sel + 2) % 3; audio.sfx('move'); }
-    if (e.down) { this.sel = (this.sel + 1) % 3; audio.sfx('move'); }
+    const n = this.items.length;
+    if (e.up) { this.sel = (this.sel + n - 1) % n; audio.sfx('move'); }
+    if (e.down) { this.sel = (this.sel + 1) % n; audio.sfx('move'); }
+    const L = this.setup.ladder;
+    if (L && this.result === 0 && this.t > 240) e.ok = true;   // 街機模式贏了自動進下一戰
     if (e.ok && this.t > 30) {
       audio.sfx('ok');
+      if (L) {
+        const me = this.setup.chars[0];
+        if (this.result === 0) {
+          const next = this.setup.stageNo + 1;
+          this.app.go(next < L.length ? new VSScene(this.app, ladderSetup(me, L, next)) : new EndingScene(this.app, this.setup));
+        } else if (this.sel === 0) this.app.go(new VSScene(this.app, this.setup));
+        else this.app.go(new MenuScene(this.app));
+        return;
+      }
       if (this.sel === 0) this.app.go(new VSScene(this.app, this.setup));
       else if (this.sel === 1) this.app.go(new SelectScene(this.app, this.setup.mode, this.setup));
       else this.app.go(new MenuScene(this.app));
@@ -517,8 +614,18 @@ export class ResultScene {
 
 // ---------- 操作說明 ----------
 export class ControlsScene {
-  constructor(app, back, chars) { this.app = app; this.back = back; this.t = 0; this.chars = chars || CHAR_IDS; }
-  update(ev) { this.t++; if ((ev.any.back || ev.any.ok) && this.back) { audio.sfx('back'); this.app.go(this.back); } }
+  constructor(app, back, chars) {
+    this.app = app; this.back = back; this.t = 0;
+    this.chars = (chars || readyChars()).filter((v, i, a) => a.indexOf(v) === i);
+    this.page = 0;
+  }
+  get pages() { return Math.ceil(this.chars.length / 2); }
+  update(ev) {
+    this.t++;
+    if (ev.any.left) { this.page = (this.page + this.pages - 1) % this.pages; audio.sfx('move'); }
+    if (ev.any.right) { this.page = (this.page + 1) % this.pages; audio.sfx('move'); }
+    if ((ev.any.back || ev.any.ok) && this.back) { audio.sfx('back'); this.app.go(this.back); }
+  }
   draw(g) {
     g.fillStyle = '#0d0716';
     g.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -535,17 +642,18 @@ export class ControlsScene {
     const cols = [110, 330, 560, 800, 1060];
     rows.forEach((r, i) => r.forEach((c, k) => text(g, c, cols[k], 100 + i * 34, { size: i === 0 ? 17 : 16, color: i === 0 ? '#ffb347' : k === 0 ? '#ffd84a' : '#fff', font: FONT_TC, outline: null, shadow: false })));
     let y = 360;
-    for (const id of this.chars.filter((v, i, a) => a.indexOf(v) === i)) {
+    for (const id of this.chars.slice(this.page * 2, this.page * 2 + 2)) {
       const c = CHARS[id];
-      text(g, `${c.name}  ${c.nameZh}`, 120, y, { size: 22, color: c.color, align: 'left', font: FONT_TC });
+      text(g, `${c.name}  ${c.nameZh}・${c.style}`, 120, y, { size: 22, color: c.color, align: 'left', font: FONT_TC });
       text(g, c.blurb, 120, y + 30, { size: 15, color: '#c9c2d8', align: 'left', font: FONT_TC, outline: null, shadow: false });
       Object.values(c.moveNames).forEach((m, k) => {
-        text(g, m.zh, 140 + (k % 2) * 520, y + 64 + Math.floor(k / 2) * 30, { size: 17, color: '#fff', align: 'left', font: FONT_TC, outline: null, shadow: false });
-        text(g, m.cmd, 400 + (k % 2) * 520, y + 64 + Math.floor(k / 2) * 30, { size: 17, color: '#ffe9a8', align: 'left', font: FONT_TC, outline: null, shadow: false });
+        text(g, m.zh, 140 + (k % 2) * 560, y + 64 + Math.floor(k / 2) * 30, { size: 17, color: '#fff', align: 'left', font: FONT_TC, outline: null, shadow: false });
+        text(g, m.cmd, 400 + (k % 2) * 560, y + 64 + Math.floor(k / 2) * 30, { size: 16, color: '#ffe9a8', align: 'left', font: FONT_TC, outline: null, shadow: false });
       });
       y += 160;
     }
-    text(g, '指令以角色面向右方為準（面向左時左右相反）。普通技命中／被防時可取消成必殺技；必殺技可再取消成超必殺。', VIEW_W / 2, 690, { size: 14, color: '#9a92aa', font: FONT_TC, outline: null, shadow: false });
+    if (this.pages > 1) text(g, `◀ ${this.page + 1} / ${this.pages} ▶　（←→ 換頁）`, VIEW_W / 2, 665, { size: 16, color: '#ffd84a', font: FONT_TC, outline: null });
+    text(g, '指令以角色面向右方為準（面向左時左右相反）。普通技命中／被防時可取消成必殺技；必殺技可再取消成超必殺。', VIEW_W / 2, 695, { size: 14, color: '#9a92aa', font: FONT_TC, outline: null, shadow: false });
   }
 }
 

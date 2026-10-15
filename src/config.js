@@ -37,6 +37,12 @@ export const LAYOUT = {
 export const STAGES = {
   market: { name: 'NEON MARKET', nameZh: '霓虹夜市', img: 'assets/stages/market.webp', scale: 1.0, y: 0.80, parallax: 0.85, tint: 'rgba(20,10,40,0.10)', bgm: 0 },
   beach:  { name: 'SUNSET RODA', nameZh: '夕陽廣場', img: 'assets/stages/beach.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(40,10,0,0.05)', bgm: 1 },
+  steppe: { name: 'GREAT STEPPE', nameZh: '草原祭典', img: 'assets/stages/steppe.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 2 },
+  harbor: { name: 'FROZEN HARBOR', nameZh: '極光港口', img: 'assets/stages/harbor.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(10,20,50,0.08)', bgm: 3 },
+  rooftop: { name: 'MOONLIT ROOFS', nameZh: '月下屋頂', img: 'assets/stages/rooftop.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(20,10,40,0.08)', bgm: 3 },
+  temple: { name: 'CLOUD TEMPLE', nameZh: '雲海寺院', img: 'assets/stages/temple.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 2 },
+  gym:    { name: 'UNDERGROUND RING', nameZh: '地下拳場', img: 'assets/stages/gym.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(0,0,0,0.08)', bgm: 0 },
+  stadium: { name: 'NIGHT STADIUM', nameZh: '夜光拳館', img: 'assets/stages/stadium.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 1 },
 };
 
 // 物理（角色個別值在角色檔覆寫）

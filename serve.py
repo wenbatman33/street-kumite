@@ -19,7 +19,13 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
             super().log_message(fmt, *args)
 
 
-socketserver.TCPServer.allow_reuse_address = True
-with socketserver.TCPServer(("", PORT), NoCacheHandler) as httpd:
+# 多執行緒 + 較大的連線佇列：一次載入 8 位角色的 atlas 時，單執行緒伺服器會漏接請求
+class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+    request_queue_size = 64
+
+
+with Server(("", PORT), NoCacheHandler) as httpd:
     print(f"serving on http://localhost:{PORT}")
     httpd.serve_forever()

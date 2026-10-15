@@ -79,6 +79,7 @@ export function drawStage(g, stageId, camX, t = 0) {
 
 // ---------- 角色 ----------
 function drawFighter(g, f, camX, t) {
+  if (f.invisible) return;
   const fi = f.frameInfo();
   const fr = f.sprite(fi);
   let sx = f.rx - camX;
@@ -158,6 +159,7 @@ function star(g, x, y, r) {
 }
 
 function drawShadow(g, f, camX) {
+  if (f.invisible) return;
   const h = Math.min(1, f.ry / 300);
   const w = (f.state === 'knockdown' || f.state === 'ko' ? 110 : 70) * (1 - h * 0.5);
   g.fillStyle = `rgba(0,0,0,${LAYOUT.shadowAlpha * (1 - h * 0.6)})`;
@@ -193,15 +195,20 @@ function drawProjectile(g, p, camX, t) {
   }
   if (frames && frames.length) {
     const valid = frames.filter(Boolean);
-    const fr = valid[Math.floor(t / 4) % valid.length];
+    // once：依存在時間只播一次（地面冰柱）；否則循環
+    const fr = p.spec.once ? valid[Math.min(valid.length - 1, Math.floor(p.t / p.spec.once))] : valid[Math.floor(t / 4) % valid.length];
     const k = p.owner.k * p.scale;
+    const foot = p.spec.anchor === 'foot';
+    const ax = foot ? fr.fx : fr.cx, ay = foot ? fr.fy : fr.cy;
     g.translate(sx, sy);
+    if (p.vy) g.rotate(Math.atan2(-p.vy, Math.abs(p.vx)) * p.facing);
     g.scale(p.facing * k, k);
-    g.drawImage(atlas.images[fr.p], fr.x, fr.y, fr.w, fr.h, -fr.cx, -fr.cy, fr.w, fr.h);
+    if (p.spec.once && p.t > p.life - 8) g.globalAlpha = Math.max(0, (p.life - p.t) / 8);
+    g.drawImage(atlas.images[fr.p], fr.x, fr.y, fr.w, fr.h, -ax, -ay, fr.w, fr.h);
     if (p.spec.super) {
       g.globalCompositeOperation = 'lighter';
       g.globalAlpha = 0.35;
-      g.drawImage(atlas.images[fr.p], fr.x, fr.y, fr.w, fr.h, -fr.cx, -fr.cy, fr.w, fr.h);
+      g.drawImage(atlas.images[fr.p], fr.x, fr.y, fr.w, fr.h, -ax, -ay, fr.w, fr.h);
     }
   } else {
     const r = 40 * p.scale;
@@ -251,7 +258,7 @@ function drawEffects(g, fx, camX) {
       g.globalAlpha = 1;
     } else if (e.type === 'dust') {
       g.globalAlpha = 0.45 * (1 - p);
-      g.fillStyle = '#d8ccb8';
+      g.fillStyle = e.color || '#d8ccb8';
       g.beginPath(); g.arc(x, y, e.r * (0.6 + p), 0, Math.PI * 2); g.fill();
       g.globalAlpha = 1;
     } else if (e.type === 'ring') {

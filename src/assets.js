@@ -3,11 +3,15 @@ import { STAGES } from './config.js';
 
 export const ASSETS = { chars: {}, portraits: {}, stages: {}, alt: {} };
 
-function loadImage(src) {
+// 載入失敗自動重試（伺服器忙碌或網路不穩時）
+function loadImage(src, tries = 3) {
   return new Promise((ok) => {
     const im = new Image();
     im.onload = () => ok(im);
-    im.onerror = () => ok(null);
+    im.onerror = () => {
+      if (tries > 1) setTimeout(() => loadImage(src, tries - 1).then(ok), 300);
+      else ok(null);
+    };
     im.src = src;
   });
 }
@@ -46,9 +50,16 @@ export async function loadAll(charIds, onProgress) {
 }
 
 // 同角色對戰時 P2 用的替代配色：只換服裝色相（膚色不動），結果快取
+// from = 色相範圍（起點大於終點代表跨過 0°，例如紅色）；可多條規則
 const ALT_RULES = {
-  tora: { from: [200, 265], to: 352, sat: 1.1 },   // 藏青道服 → 深紅
-  vera: { from: [95, 175], to: 275, sat: 1.0 },    // 綠色上衣 → 紫
+  tora: [{ from: [200, 265], to: 352, sat: 1.1 }],    // 藏青道服 → 深紅
+  vera: [{ from: [95, 175], to: 275, sat: 1.0 }],     // 綠色上衣 → 紫
+  baatar: [{ from: [205, 260], to: 140, sat: 1.0 }],  // 藍色短褲 → 綠
+  skye: [{ from: [185, 228], to: 330, sat: 1.0 }],    // 冰藍外套 → 桃紅
+  kagero: [{ from: [345, 12], to: 205, sat: 1.0 }],   // 紅圍巾 → 藍
+  shen: [{ from: [345, 12], to: 150, sat: 1.0 }],     // 深紅袈裟 → 墨綠
+  drake: [{ from: [100, 165], to: 0, sat: 1.0 }, { from: [42, 62], to: 215, sat: 0.9 }],   // 綠拳套 → 紅、金短褲 → 藍
+  kanya: [{ from: [345, 12], to: 220, sat: 1.0 }],    // 紅短褲 → 藍
 };
 
 const altPages = {};   // 角色 → 已算好的頁面（閒置時逐頁計算）
@@ -88,7 +99,7 @@ export function precomputeAltColors(ids) {
   idle(next);
 }
 
-function recolorRange(im, { from, to, sat }) {
+function recolorRange(im, rules) {
   const c = document.createElement('canvas');
   c.width = im.width;
   c.height = im.height;
@@ -96,7 +107,6 @@ function recolorRange(im, { from, to, sat }) {
   g.drawImage(im, 0, 0);
   const d = g.getImageData(0, 0, c.width, c.height);
   const a = d.data;
-  const [h0, h1] = from;
   for (let i = 0; i < a.length; i += 4) {
     if (a[i + 3] < 8) continue;
     const r = a[i] / 255, gg = a[i + 1] / 255, b = a[i + 2] / 255;
@@ -109,7 +119,9 @@ function recolorRange(im, { from, to, sat }) {
     else h = (r - gg) / dl + 4;
     h *= 60;
     if (h < 0) h += 360;
-    if (h < h0 || h > h1) continue;
+    const rule = rules.find(({ from: [h0, h1] }) => (h0 <= h1 ? h >= h0 && h <= h1 : h >= h0 || h <= h1));
+    if (!rule) continue;
+    const { to, sat } = rule;
     const l = (mx + mn) / 2;
     let s = dl / (1 - Math.abs(2 * l - 1));
     s = Math.min(1, s * sat);

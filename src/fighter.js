@@ -2,6 +2,7 @@
 import { PHYS, LAYOUT, FX } from './config.js';
 import { STATE_ANIMS, HURT, STRENGTH } from './chars/common.js';
 import { ASSETS } from './assets.js';
+import { rel } from './input.js';
 
 const NEUTRAL = new Set(['stand', 'crouch']);
 const BLOCKABLE = new Set(['stand', 'crouch', 'blockstun']);
@@ -98,7 +99,27 @@ export class Fighter {
       return;
     }
 
+    if (this.state === 'prejump') {
+      // 360 指令投：轉到「上」會先進入起跳預備，這幾格內仍可出指令投
+      const sp = this.specialCheck(null, { filter: (mv) => mv.prejumpOK });
+      if (sp) this.startMove(sp);
+      return;
+    }
+
     if (this.state === 'air') {
+      // 二段跳：空中重新按「上」
+      const last = inp.hist[inp.hist.length - 1], prev = inp.hist[inp.hist.length - 2];
+      if (this.def.doubleJump && !this.dblUsed && last.t === inp.frame && rd >= 7 && prev && rel(prev.d, this.facing) < 7 && this.st > 6) {
+        this.dblUsed = true;
+        this.vy = this.def.jumpVy * 0.82;
+        this.vx = (rd === 9 ? 1 : rd === 7 ? -1 : 0) * this.def.jumpVx * this.facing;
+        this.st = 0;
+        this.battle.fx.ring(this.x, this.y + 20, '#c9a7ff', 0.8);
+        return;
+      }
+      // 空中必殺技（例：忍者空中苦無）
+      const asp = this.specialCheck(null, { air: true });
+      if (asp) { this.startMove(asp, { keepVel: true }); return; }
       if (!this.airUsed) {
         for (const b of ['HK', 'HP', 'MK', 'MP', 'LK', 'LP']) {
           if (inp.buffered(b)) {
@@ -156,21 +177,27 @@ export class Fighter {
     if (this.state === 'crouch') this.setState('stand');
   }
 
-  specialCheck(cancelFrom) {
+  // opts.air：空中版必殺技；opts.filter：只允許符合條件的招式
+  specialCheck(cancelFrom, opts = {}) {
     const inp = this.input;
-    if (this.airborne) return null;
+    if (this.airborne !== !!opts.air) return null;
     for (const sp of this.def.specials) {
+      if (opts.air && !sp.air) continue;
       const btns = sp.btn === 'P' ? ['HP', 'MP', 'LP'] : ['HK', 'MK', 'LK'];
       const b = btns.find((x) => inp.buffered(x));
       if (!b) continue;
       if (!inp.motion(sp.motion, this.facing)) continue;
-      const name = sp.move === 'super' ? 'super' : `${sp.move}_${STRENGTH[b]}`;
+      const base = opts.air ? sp.air : sp.move;
+      const name = base === 'super' ? 'super' : `${base}_${STRENGTH[b]}`;
       const mv = this.def.moves[name];
       if (!mv) continue;
+      if (opts.filter && !opts.filter(mv)) continue;
       if (cancelFrom && cancelFrom.type === 'special' && mv.type !== 'super') continue;
       if (mv.meter && this.meter < mv.meter && !this.battle.infiniteMeter(this)) continue;
       if (mv.proj && this.battle.hasProjectile(this)) continue;
       inp.consume(b);
+      if (sp.motion === 'CBF') inp.useCharge('B');
+      if (sp.motion === 'CDU') inp.useCharge('D');
       return name;
     }
     return null;
@@ -197,6 +224,7 @@ export class Fighter {
     this.lockFailed = false;
     this.stopped = false;
     this.grabbed = false;
+    this.armorUsed = 0;
     if (!opts.keepVel) this.vx = 0;
     if (mv.type === 'super') {
       if (!this.battle.infiniteMeter(this)) this.meter = Math.max(0, this.meter - (mv.meter || 0));
@@ -234,7 +262,7 @@ export class Fighter {
           this.vy = d.jumpVy;
           this.vx = this.jumpDir * d.jumpVx * this.facing;
           this.y = 0.01;
-          this.setState('air', { airUsed: false });
+          this.setState('air', { airUsed: false, dblUsed: false });
         }
         break;
       case 'move': this.tickMove(); break;
@@ -299,11 +327,15 @@ export class Fighter {
         return;
       }
     }
-    // 投技：抓取判定
-    if (m.type === 'throw' && !this.grabbed && m.grab && t >= m.grab.t[0] && t <= m.grab.t[1]) {
-      if (this.battle.tryGrab(this)) return;
+    // 投技／指令投：抓取判定
+    if (m.grab && !this.grabbed && !this.lockFailed && t >= m.grab.t[0] && t <= m.grab.t[1]) {
+      if (this.battle.tryGrab(this, m)) return;
     }
     if (this.grabbed) this.battle.tickThrow(this);
+    // 瞬移（可多段）
+    if (m.teleport && !this.lockFailed) {
+      for (const tp of Array.isArray(m.teleport) ? m.teleport : [m.teleport]) if (t === tp.t) this.battle.teleport(this, tp);
+    }
     const total = this.seq.reduce((s, e) => s + e[1], 0);
     if (t >= total) {
       if (this.airborne && (m.holdLast || m.air)) {
@@ -386,6 +418,20 @@ export class Fighter {
       if (blocked) this.lowStance = crouchBlock;
     }
     const hs = FX.hitstop[hit.hitstop || 'M'];
+
+    // 霸體：出招中特定區間挨打不中斷（只吃一半傷害），armor = [開始, 結束, 可吸收次數]
+    if (!blocked && this.state === 'move' && this.move.armor && !hit.unblockable) {
+      const [a0, a1, n] = this.move.armor;
+      if (this.mt >= a0 && this.mt <= a1 && this.armorUsed < n) {
+        this.armorUsed++;
+        const dmg = this.battle.noDamage(this) ? 0 : Math.round((hit.dmg || 0) * 0.5);
+        this.hp = Math.max(this.battle.noKO(this) ? 1 : 0, this.hp - dmg);
+        this.hitstop = src.proj ? Math.round(hs * 0.7) : hs;
+        this.flash = 5;
+        if (this.hp <= 0) { this.knockOut(att, hit, away); return 'hit'; }
+        return 'armor';
+      }
+    }
 
     if (blocked) {
       const chip = Math.round(hit.chip || 0);
@@ -505,7 +551,7 @@ export class Fighter {
         break;
       case 'blockstun': [anim, idx] = pick(this.lowStance ? STATE_ANIMS.blockLo : STATE_ANIMS.blockHi); break;
       case 'hitstun': [anim, idx] = pick(STATE_ANIMS[this.react] || STATE_ANIMS.hitHigh); break;
-      case 'thrown': [anim, idx] = pick(STATE_ANIMS.thrown); break;
+      case 'thrown': [anim, idx] = pick(this.y > 30 ? STATE_ANIMS.airFall : STATE_ANIMS.thrown); break;
       case 'airHit': [anim, idx] = pick(this.vy > 2 ? STATE_ANIMS.airHit : STATE_ANIMS.airFall); break;
       case 'knockdown': [anim, idx] = pick(this.st < 6 ? STATE_ANIMS.downSlam : STATE_ANIMS.down); break;
       case 'ko': [anim, idx] = pick(this.st < 6 ? STATE_ANIMS.downSlam : STATE_ANIMS.down); break;
@@ -531,9 +577,18 @@ export class Fighter {
   }
 
   // 世界單位 / atlas 像素
+  // 世界單位 / atlas 像素（def.size：角色體型倍率，摔角手比較高大）
   get k() {
     const atlas = ASSETS.chars[this.def.id];
-    return LAYOUT.charH / (atlas ? atlas.standH : 360);
+    return (LAYOUT.charH * (this.def.size || 1)) / (atlas ? atlas.standH : 360);
+  }
+
+  // 瞬移中看不見（也打不到）
+  get invisible() {
+    const v = this.state === 'move' && !this.lockFailed && this.move.invisible;
+    if (!v) return false;
+    const list = Array.isArray(v[0]) ? v : [v];
+    return list.some(([a, b]) => this.mt >= a && this.mt <= b);
   }
 
   massY() {
@@ -562,7 +617,7 @@ export class Fighter {
   hurtboxes() {
     const s = this.state;
     if (s === 'knockdown' || s === 'getup' || s === 'ko' || s === 'thrown' || s === 'intro' || s === 'win') return [];
-    if (this.invuln('strike')) return [];
+    if (this.invuln('strike') || this.invisible || this.grabbed) return [];   // 投技演出中無敵
     const fi = this.frameInfo();
     const fr = this.sprite(fi);
     let body;
@@ -584,7 +639,11 @@ export class Fighter {
         if (this.mt >= h.t[0] - 1 && this.mt <= h.t[1] + 6) {
           const r = this.hitRect(h);
           const shrink = 12;
-          list.push({ x0: r.x0 + shrink, x1: r.x1 - shrink, y0: r.y0 + 6, y1: r.y1 - 6 });
+          // limbHurt：武器招式只有靠近身體的一段會被打（棍尖打不到）
+          const frac = this.move.limbHurt ?? 1;
+          const len = (r.x1 - r.x0) * frac;
+          const near = this.facing > 0 ? { x0: r.x0, x1: r.x0 + len } : { x0: r.x1 - len, x1: r.x1 };
+          list.push({ x0: near.x0 + shrink, x1: near.x1 - shrink, y0: r.y0 + 6, y1: r.y1 - 6 });
         }
       }
     }
@@ -620,7 +679,7 @@ export class Fighter {
     if (!fr) return null;
     const fi = { anim, idx: e[0], mass: !!(this.def.massFrames[anim] && this.def.massFrames[anim].includes(e[0]) && this.airborne) };
     const x = this.spriteXform(fi, fr);
-    const reach = (fr.rx - x.ax) * x.k + x.dx;
+    const reach = Math.min(h.maxReach ?? Infinity, (fr.rx - x.ax) * x.k + x.dx);
     const [bx, , bw] = h.box;
     const len = Math.max(50, Math.min(bw, reach - bx));
     const y0 = x.baseY + (x.ay - fr.ry1) * x.k - 8;
@@ -643,8 +702,9 @@ export class Fighter {
   }
 
   pushbox() {
-    const h = this.crouching ? 150 : this.state === 'knockdown' || this.state === 'ko' ? 40 : 250;
-    const w = this.state === 'knockdown' || this.state === 'ko' || this.state === 'getup' ? 0 : 34;
+    const sz = this.def.size || 1;
+    const h = (this.crouching ? 150 : this.state === 'knockdown' || this.state === 'ko' ? 40 : 250) * sz;
+    const w = this.state === 'knockdown' || this.state === 'ko' || this.state === 'getup' || this.invisible ? 0 : (this.def.pushW || 34);
     return { x0: this.x - w, x1: this.x + w, y0: this.y, y1: this.y + h };
   }
 }

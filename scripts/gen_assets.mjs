@@ -38,7 +38,7 @@ function stripPrompt(cid, c, anim, s) {
   const [R, C] = s.grid;
   const N = R * C;
   const W = C * 512, H = R * 512;
-  const label = ACTION[anim] || `special move "${anim}"`;
+  const label = s.label || ACTION[anim] || `special move "${anim}"`;
   const frames = s.frames.map((f, i) => `${i + 1}. ${f}`).join('\n');
   return { size: `${W}x${H}`, body:
 `${M.style}.
@@ -59,13 +59,15 @@ function buildItems() {
     items.push({ id: `${cid}/ref`, out: ref, size: '1024x1024', deps: [], body:
 `${M.style}.
 Character design reference: ONE single full-body view of ${c.desc}.
-Pose: neutral fighting stance, seen from the side in a three-quarter view, FACING RIGHT, knees bent, both fists raised to guard the chin, left foot and left fist forward.
+Pose: ${c.stance || 'neutral fighting stance, knees bent, both fists raised to guard the chin, left foot and left fist forward'}, seen from the side in a three-quarter view, FACING RIGHT.
 The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the character contains no magenta or pink. No shadow, no floor, no text. The character is centered with generous margins and fills about 75% of the image height.` });
     items.push({ id: `${cid}/portrait`, out: resolve(dir, 'portrait.png'), size: '1024x1024', deps: [ref], body:
 `${M.style}.
 ${c.portrait}. Same face, hair, outfit and colors as the attached character reference.
 The whole background is ONE flat solid magenta color #FF00FF; the character contains no magenta or pink. No text.` });
-    for (const [anim, s] of Object.entries(c.strips)) {
+    // 範本動作 + 角色覆寫（新角色沒寫的動作沿用 templates）
+    const strips = { ...(M.templates || {}), ...c.strips };
+    for (const [anim, s] of Object.entries(strips)) {
       const p = stripPrompt(cid, c, anim, s);
       items.push({ id: `${cid}/${anim}`, out: resolve(dir, `${anim}.png`), size: p.size, deps: [ref], body: p.body });
     }

@@ -42,6 +42,10 @@ def border_key(im):
         samples += [px[x, 0], px[x, h - 1]]
     for y in range(0, h, 4):
         samples += [px[0, y], px[w - 1, y]]
+    # 角色貼到圖邊（頭像常見）時，只用像洋紅的邊緣像素算中位數
+    mag = [s for s in samples if s[0] > 170 and s[2] > 170 and s[1] < 100]
+    if len(mag) >= len(samples) * 0.1:
+        samples = mag
     return tuple(sorted(s[i] for s in samples)[len(samples) // 2] for i in range(3))
 
 
@@ -390,7 +394,8 @@ def process_character(cid, report):
     src = RAW / cid
     entries = []
     anims = {}
-    for anim, spec in c['strips'].items():
+    strips = {**M.get('templates', {}), **c['strips']}
+    for anim, spec in strips.items():
         p = src / f'{anim}.png'
         if not p.exists():
             report[f'{cid}/{anim}'] = {'pass': False, 'issues': ['missing']}
@@ -442,7 +447,7 @@ def process_character(cid, report):
         frames, key, size = process_strip(p, f['grid'], 'mass', issues)
         valid = [x for x in frames if x]
         hs = sorted(x.size[1] for x in valid)
-        s = FX_H / hs[len(hs) // 2]
+        s = f.get('h', FX_H) / hs[len(hs) // 2]
         frames = scale_frames(frames, s)
         metas = [measure(x) if x else None for x in frames]
         report[f'fx/{fid}'] = {'pass': len(valid) == len(frames), 'issues': issues, 'frames': len(valid)}

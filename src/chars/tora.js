@@ -71,6 +71,7 @@ const tora = {
     axe: { zh: '虎落踵（中段）', cmd: '↓↙← + K' },
     super: { zh: '超必殺・雷虎轟', cmd: '↓↘→↓↘→ + P' },
   },
+  ai: { zone: 'fireball', antiAir: 'rising', close: ['axe'], enders: { light: 'fireball', big: 'rising' } },
 };
 
 for (const st of ['L', 'M', 'H']) {

@@ -50,7 +50,7 @@ function spin(st) {
 const vera = {
   id: 'vera', name: 'VERA', nameZh: '薇拉', title: 'CAPOEIRA STORM', style: '卡波耶拉', color: '#3ddc68',
   blurb: '速攻型。用疾風腳拉近距離，倒立旋風連段壓制，月輪空翻對空。',
-  hp: 950, stunMax: 950,
+  hp: 950, stunMax: 950, dmgMul: 1.06,
   walkF: 4.0, walkB: 3.3, jumpVy: 19, jumpVx: 4.8,
   normals: baseNormals({
     '5LP': { hits: [{ dmg: 28 }] },
@@ -77,6 +77,7 @@ const vera = {
     spin: { zh: '銀河旋', cmd: '↓↙← + K' },
     super: { zh: '超必殺・嵐舞', cmd: '↓↘→↓↘→ + K' },
   },
+  ai: { approach: 'lunge', antiAir: 'moon', close: ['spin'], enders: { light: 'lunge', big: 'spin' } },
 };
 
 for (const st of ['L', 'M', 'H']) {
