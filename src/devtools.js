@@ -45,9 +45,10 @@ export class DevTools {
   toggle() {
     this.open = !this.open;
     if (this.open && !this.gui) this.build();
+    else if (this.open) this.buildTouch();
     if (this.gui) this.gui.show(this.open);
     view.devHud = this.open;
-    if (!this.open) { this.preview.on = false; this.paused = false; }
+    if (!this.open) { this.preview.on = false; this.paused = false; if (this.app.touch) this.app.touch.profile = null; }
     this.btn.classList.toggle('on', this.open);
   }
 
@@ -110,6 +111,9 @@ export class DevTools {
     const col = lay.addFolder('顏色');
     col.close();
     for (const k of Object.keys(LAYOUT.colors)) col.addColor(LAYOUT.colors, k).onChange(() => this.save());
+    this.touchFolder = lay.addFolder('🎮 觸控按鍵（手機／平板分開設定）');
+    this.touchFolder.close();
+    this.buildTouch();
 
     // 舞台
     const stg = gui.addFolder('🏙 舞台 / 角色大小');
@@ -149,6 +153,39 @@ export class DevTools {
     this.moveFolder.close();
     this.buildMove();
     this.gui.show(this.open);
+  }
+
+  // 觸控虛擬按鍵：選版型 → 滑桿微調，或在畫面上直接拖曳（位置以畫面寬／高比例儲存）
+  buildTouch() {
+    const f = this.touchFolder;
+    const T = this.app.touch;
+    if (!f || !T) return;
+    [...f.children].forEach((c) => c.destroy());
+    f.add(T, 'force').name('桌機強制顯示觸控層');
+    f.add(T, 'edit').name('拖曳按鍵改位置');
+    const sel = { profile: T.profileName() };
+    const opts = {};
+    for (const [k, v] of Object.entries(T.profiles)) opts[v] = k;
+    f.add(sel, 'profile', opts).name('編輯版型').onChange((v) => { T.profile = v; this.buildTouch(); });
+    if (T.profile !== sel.profile) T.profile = sel.profile;   // DEV 開著時畫面顯示正在編輯的版型
+    const P = LAYOUT.touch[sel.profile];
+    const save = () => this.save();
+    f.add(P, 'alpha', 0.1, 1, 0.01).name('對戰透明度').onChange(save);
+    f.add(P, 'menuAlpha', 0, 1, 0.01).name('選單透明度').onChange(save);
+    const names = { stick: '對戰搖桿', buttons: '六鍵', sp: 'SP 簡易必殺鍵', pause: '暫停鍵', reset: '重設鍵（訓練）', fs: '全螢幕鍵', menuStick: '選單搖桿', ok: '選單確定鍵', back: '選單返回鍵' };
+    const range = {
+      x: [0, 1, 0.001], y: [0, 1, 0.001], r: [0.05, 0.4, 0.001], size: [0.03, 0.3, 0.001], gap: [0, 0.1, 0.001],
+      tilt: [-0.1, 0.1, 0.001], twin: [0, 1, 0.01], dead: [0.05, 0.8, 0.01], diag: [20, 80, 1],
+    };
+    const label = { x: 'X（畫面寬比例）', y: 'Y（畫面高比例）', r: '半徑', size: '直徑', gap: '間距', tilt: '每欄高低差', twin: '兩鍵同按判定', dead: '死區', diag: '斜角判定角度', float: '浮動搖桿' };
+    for (const [k, name] of Object.entries(names)) {
+      const sub = f.addFolder(name);
+      sub.close();
+      for (const p of Object.keys(P[k])) {
+        const c = typeof P[k][p] === 'boolean' ? sub.add(P[k], p) : sub.add(P[k], p, ...range[p]);
+        c.name(label[p] || p).listen().onChange(save);
+      }
+    }
   }
 
   withBattle(fn) {

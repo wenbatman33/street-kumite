@@ -14,14 +14,52 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
 
+// 每個 tick 開頭呼叫一次（主迴圈）：同時更新觸控快照，讓同一 tick 內所有讀取者拿到同一份觸控輸入
 export function takeKeyPresses() {
+  snapTouch();
   const out = keyPresses.slice();
   keyPresses.length = 0;
   return out;
 }
 export const isKeyDown = (code) => keys.has(code);
+// 觸控系統鍵（暫停／重設）模擬一次按鍵，走跟鍵盤相同的流程
+export const pushKeyPress = (code) => { keyPresses.push(code); };
 
 const EMPTY = () => ({ up: false, down: false, left: false, right: false, LP: false, MP: false, HP: false, LK: false, MK: false, HK: false, start: false, select: false });
+
+// ---------- 觸控（src/touch.js 的虛擬搖桿／按鍵即時寫入）----------
+export const touchState = {
+  enabled: false,     // 觸控層顯示中
+  held: {},           // 按住中的鍵：LP..HK、SP
+  latch: {},          // 兩個 tick 之間按下又放開的鍵也要算到（快速點擊不漏）
+  dirs: [5],          // 搖桿絕對方向（數字鍵盤表示）佇列：手指轉太快時，經過的每個方向至少給 1 tick，搓招才不會漏格
+};
+let touchSnap = null;
+
+let touchDeferred = {};          // 方向佇列還沒播完時新按下的鍵：等方向輸出完才送出（先 ↓↘→ 再拳，搓招才成立）
+let touchPrevBtn = {};
+
+function snapTouch() {
+  if (!touchState.enabled) { touchSnap = null; touchState.latch = {}; touchDeferred = {}; touchPrevBtn = {}; return; }
+  const q = touchState.dirs;     // q[0] = 目前輸出中的方向，後面是還沒輸出過的
+  if (q.length > 1) q.shift();
+  const d = q[0];
+  const pending = q.length > 1;
+  const r = EMPTY();
+  r.left = d % 3 === 1; r.right = d % 3 === 0;
+  r.down = d <= 3; r.up = d >= 7;
+  for (const k of [...BUTTONS, 'SP']) {
+    const on = !!(touchState.held[k] || touchState.latch[k]);
+    if (on && !touchPrevBtn[k] && pending) { touchDeferred[k] = true; continue; }   // 新按的鍵延後
+    r[k] = on || (!pending && !!touchDeferred[k]);
+  }
+  if (!pending) touchDeferred = {};
+  touchPrevBtn = r;
+  touchState.latch = {};
+  touchSnap = r;
+}
+
+export function readTouch() { return touchSnap; }
 
 export function readKeyboard(map) {
   const r = EMPTY();
@@ -81,7 +119,11 @@ export class PlayerInput {
     this.log = [];                   // 訓練模式輸入紀錄
     this.cb = 0; this.cd = 0;        // 目前連續按住「後」「下」的 tick 數
     this.cbLast = 0; this.cbEnd = -99; this.cdLast = 0; this.cdEnd = -99;
+    this.forced = null;              // 簡易必殺：直接指定的指令（緩衝時間內只認這個）
   }
+
+  // 觸控簡易必殺：接下來幾個 tick 視為已輸入此指令（不用真的搓，蓄力／360 也免）
+  force(motion) { this.forced = { m: motion, t: this.frame }; }
 
   // 每 tick 依角色面向更新蓄力（面向會變，所以由角色呼叫）
   updateCharge(facing) {
@@ -147,6 +189,10 @@ export class PlayerInput {
   relDir(facing) { return rel(this.dir, facing); }
 
   motion(name, facing) {
+    if (this.forced) {
+      if (this.frame - this.forced.t <= PHYS.bufferTicks) return name === this.forced.m;
+      this.forced = null;
+    }
     const m = MOTIONS[name];
     if (m.charge) return this.charged(m.charge) && m.to.includes(rel(this.dir, facing));
     if (m.spin) {

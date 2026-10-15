@@ -31,6 +31,34 @@ export const LAYOUT = {
     hp: '#ffd23a', hpLow: '#ff4a2a', trail: '#e8262b', barBg: '#2a1012', meter: '#2fc6ff', meterFull: '#7dff6b',
     text: '#ffffff', outline: '#14080c', timer: '#ffe9a8', combo: '#ffcf33',
   },
+  // 觸控虛擬按鍵（只在觸控裝置顯示）。x = 畫面寬比例、y = 畫面高比例；大小一律用「畫面高比例」，手機與平板分開設定
+  touch: {
+    mobile: {
+      alpha: 0.6, menuAlpha: 0.35,
+      stick: { x: 0.12, y: 0.7, r: 0.18, dead: 0.25, diag: 50, float: true },   // r = 半徑；diag = 斜角判定角度；float = 底座外按下時搖桿移到手指處
+      buttons: { x: 0.835, y: 0.69, size: 0.155, gap: 0.02, tilt: 0.015, twin: 0.35 },   // size = 直徑；tilt = 每欄高低差；twin = 兩鍵中間同按的判定寬度
+      sp: { x: 0.672, y: 0.875, size: 0.13 },
+      pause: { x: 0.955, y: 0.1, size: 0.1 },
+      reset: { x: 0.955, y: 0.27, size: 0.1 },
+      fs: { x: 0.045, y: 0.1, size: 0.09 },
+      // 選單畫面：六鍵收起來，改用小搖桿 + 確定／返回（放在畫面兩側黑邊，不擋選項）
+      menuStick: { x: 0.045, y: 0.62, r: 0.1 },
+      ok: { x: 0.955, y: 0.5, size: 0.15 },
+      back: { x: 0.955, y: 0.75, size: 0.13 },
+    },
+    tablet: {
+      alpha: 0.55, menuAlpha: 0.3,
+      stick: { x: 0.13, y: 0.79, r: 0.125, dead: 0.25, diag: 50, float: true },
+      buttons: { x: 0.83, y: 0.79, size: 0.105, gap: 0.016, tilt: 0.012, twin: 0.35 },
+      sp: { x: 0.655, y: 0.9, size: 0.085 },
+      pause: { x: 0.96, y: 0.06, size: 0.07 },
+      reset: { x: 0.89, y: 0.06, size: 0.07 },
+      fs: { x: 0.04, y: 0.06, size: 0.065 },
+      menuStick: { x: 0.07, y: 0.935, r: 0.055 },
+      ok: { x: 0.9, y: 0.935, size: 0.1 },
+      back: { x: 0.8, y: 0.935, size: 0.085 },
+    },
+  },
 };
 
 // 每個舞台的背景擺放（scale=相對於鋪滿所需大小的倍率，y=背景往上移多少）
@@ -79,6 +107,7 @@ export const GAME = {
   voice: true,
   volume: 0.7,
   quality: 'normal',     // 畫質：low 1280 / normal 1920 / high 2560 像素寬
+  easySpecial: false,    // 觸控「簡易必殺」：多一顆 SP 鍵，SP + 方向直接出必殺技
 };
 
 // 按鍵配置。solo = 單人／訓練；p1/p2 = 本機雙人（同一鍵盤左右分邊）

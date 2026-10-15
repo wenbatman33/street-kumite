@@ -1,5 +1,6 @@
 // 控制器：每 tick 回傳一份原始輸入（方向 + 六鍵）。人類、CPU、訓練假人共用同一套角色輸入流程
-import { readKeyboard, readPad, mergeRaw } from './input.js';
+import { readKeyboard, readPad, readTouch, mergeRaw, rel } from './input.js';
+import { GAME } from './config.js';
 
 const blank = () => ({ up: false, down: false, left: false, right: false, LP: false, MP: false, HP: false, LK: false, MK: false, HK: false, start: false, select: false });
 
@@ -13,9 +14,54 @@ export function dirToRaw(raw, d, facing) {
   return raw;
 }
 
+// touch = true：同時讀觸控虛擬按鍵（只給 1P）
 export class HumanController {
-  constructor(maps, pads) { this.maps = maps; this.pads = pads; }
-  poll() { return mergeRaw([...this.maps.map(readKeyboard), ...this.pads.map(readPad)]); }
+  constructor(maps, pads, touch = false) { this.maps = maps; this.pads = pads; this.touch = touch; this.spPrev = false; }
+  poll(b, f) {
+    const t = this.touch ? readTouch() : null;
+    const raw = mergeRaw([...this.maps.map(readKeyboard), ...this.pads.map(readPad), t]);
+    if (t && f) this.easySpecial(raw, t, b, f);
+    return raw;
+  }
+
+  // 觸控「簡易必殺」：按 SP + 方向 → 直接指定該必殺技的指令（含蓄力、360），同一 tick 按下對應的拳／腳
+  easySpecial(raw, t, b, f) {
+    const sp = !!(GAME.easySpecial && t.SP);
+    if (sp && !this.spPrev) {
+      const h = (raw.right ? 1 : 0) - (raw.left ? 1 : 0);
+      const v = raw.up ? 1 : raw.down ? -1 : 0;
+      const pick = easyPick(f, b, rel(5 + h + v * 3, f.facing));
+      if (pick) { f.input.force(pick.motion); raw[pick.btn] = true; }
+    }
+    this.spPrev = sp;
+  }
+}
+
+// ---------- 簡易必殺 ----------
+// 方向對應：SP 單按 = 超必殺，→ 前進系（波動／突進），← 反向系，↓ 對空系，↘ 第二個前進系
+const EASY_PREF = { SUPER: [5], QCF: [6, 3, 4, 2], QCB: [4, 1, 6, 2], DP: [2, 3, 6, 4], CDU: [2, 3, 6, 4], SPD: [4, 1, 6, 2], CBF: [6, 3, 4, 1] };
+const EASY_FALLBACK = { 5: [5], 8: [5], 6: [6], 9: [6], 4: [4], 7: [4], 2: [2], 3: [3, 2, 6], 1: [1, 2, 4] };
+
+export function easyMap(def) {
+  if (def._easy) return def._easy;
+  const map = {};
+  for (const sp of def.specials) {
+    const d = (EASY_PREF[sp.motion] || []).find((x) => !map[x]);
+    if (d) map[d] = sp;
+  }
+  def._easy = map;
+  return map;
+}
+
+function easyPick(f, b, rd) {
+  const map = easyMap(f.def);
+  const sp = (EASY_FALLBACK[rd] || [5]).map((d) => map[d]).find(Boolean);
+  if (!sp) return null;
+  if (sp.motion === 'SUPER') {
+    const mv = f.def.moves.super;
+    if (!mv || (mv.meter && f.meter < mv.meter && !b.infiniteMeter(f))) return null;   // 量表不夠就不出（避免變成普通技）
+  }
+  return { motion: sp.motion, btn: sp.btn === 'P' ? 'MP' : 'MK' };
 }
 
 export class NullController { poll() { return blank(); } }

@@ -2,9 +2,9 @@
 import { VIEW_W, VIEW_H, GAME, KEYMAPS, STAGES } from './config.js';
 import { CHARS, CHAR_IDS } from './chars/index.js';
 import { ASSETS, altAtlasImages } from './assets.js';
-import { MenuInput, readPad } from './input.js';
+import { MenuInput, readPad, readTouch, touchState } from './input.js';
 import { Battle } from './battle.js';
-import { HumanController, AIController, DummyController, NullController, dirToRaw } from './controllers.js';
+import { HumanController, AIController, DummyController, NullController, dirToRaw, easyMap } from './controllers.js';
 import { drawBattle, drawStage, text, view } from './render.js';
 import { audio } from './audio.js';
 
@@ -18,6 +18,7 @@ const KEYS = {
   p2: { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], ok: ['KeyI', 'KeyK', 'Enter', 'Numpad4', 'Numpad1', 'NumpadEnter'], back: ['KeyO', 'KeyL', 'Numpad5', 'Backspace'] },
 };
 const padMenus = [new MenuInput(), new MenuInput()];
+const touchMenu = new MenuInput();   // 觸控：搖桿上下左右選、LP/LK 確定、MP/MK 返回
 
 export function menuEvents(codes) {
   const mk = (map) => {
@@ -34,7 +35,19 @@ export function menuEvents(codes) {
       if (pe[k]) { out.any[k] = true; out[i === 0 ? 'p1' : 'p2'][k] = true; }
     }
   }
+  const tr = readTouch();
+  if (tr) {
+    const te = touchMenu.update(tr);
+    for (const k of ['up', 'down', 'left', 'right', 'ok', 'back']) if (te[k]) { out.any[k] = true; out.p1[k] = true; }
+  }
   return out;
+}
+
+// 觸控點選：點到第 i 列（列中心 y0 + i * gap、半寬 hw）就回傳 i
+function rowAt(x, y, cx, y0, gap, n, hw = 260) {
+  if (Math.abs(x - cx) > hw) return -1;
+  const i = Math.round((y - y0) / gap);
+  return i >= 0 && i < n && Math.abs(y - (y0 + i * gap)) < Math.min(26, gap / 2) ? i : -1;
 }
 
 // ---------- 共用繪製 ----------
@@ -117,6 +130,7 @@ export class TitleScene {
     this.t++;
     if (ev.any.ok || ev.any.back) { audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
   }
+  tap() { this.update({ any: { ok: true } }); }
   draw(g) {
     const t = this.t;
     backdrop(g, t, 'market', 0.5);
@@ -126,7 +140,7 @@ export class TitleScene {
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     logo(g, VIEW_W / 2, 250, 1);
     if (t % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, 520, { size: 34, color: '#fff' });
-    text(g, 'Enter / Space / 手把 START', VIEW_W / 2, 568, { size: 18, color: '#c9c2d8', font: FONT_TC });
+    text(g, touchState.enabled ? '點擊畫面開始' : 'Enter / Space / 手把 START', VIEW_W / 2, 568, { size: 18, color: '#c9c2d8', font: FONT_TC });
     text(g, '原創同人格鬥遊戲・角色與美術皆為原創，與任何商業格鬥遊戲無關', VIEW_W / 2, 690, { size: 15, color: '#8a829a', font: FONT_TC, outline: null });
   }
 }
@@ -159,7 +173,8 @@ export class MenuScene {
     backdrop(g, this.t, 'beach', 0.66);
     logo(g, VIEW_W / 2, 150, 0.62);
     menuList(g, this.items, this.sel, VIEW_W / 2, 300, 60);
-    text(g, '↑↓ 選擇　Enter / U 確定　Esc 返回', VIEW_W / 2, 680, { size: 16, color: '#9a92aa', font: FONT_TC, outline: null });
+    const hint = touchState.enabled ? '點選項目，或用搖桿 ↑↓ 選擇再按「確定」' : '↑↓ 選擇　Enter / U 確定　Esc 返回';
+    text(g, hint, VIEW_W / 2, 680, { size: 16, color: '#9a92aa', font: FONT_TC, outline: null });
   }
 }
 
@@ -240,6 +255,15 @@ export class SelectScene {
     const gap = size + 14;
     return { x: VIEW_W / 2 - (n * gap) / 2 + k * gap + gap / 2, y: 625, size };
   }
+  // 觸控：選舞台時點左右兩側換舞台、點中間確定；選角跟滑鼠一樣
+  tap(x, y) {
+    if (this.phase === 'stage' && y > 300 && y < 440 && (x < 400 || x > VIEW_W - 400)) {
+      const e = { left: x < 400, right: x >= 400 };
+      this.update({ any: e, p1: e, p2: e });
+      return;
+    }
+    this.click(x, y);
+  }
   click(x, y) {
     if (this.phase !== 'chars') { this.update({ any: { ok: true }, p1: {}, p2: {} }); return; }
     const i = this.mode === 'versus' ? (x < VIEW_W / 2 ? 0 : 1) : this.active;
@@ -317,6 +341,7 @@ export class VSScene {
     this.t++;
     if (this.t > 150 || (this.t > 30 && ev.any.ok)) this.app.go(new BattleScene(this.app, this.setup));
   }
+  tap() { this.update({ any: { ok: true } }); this.t--; }
   draw(g) {
     const t = this.t;
     const [a, b] = this.setup.chars;
@@ -355,6 +380,7 @@ export class EndingScene {
     this.t++;
     if (this.t > 90 && (ev.any.ok || ev.any.back)) { audio.stopMusic(); audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
   }
+  tap() { this.update({ any: { ok: true } }); this.t--; }
   draw(g) {
     const t = this.t;
     const id = this.setup.chars[0];
@@ -381,7 +407,7 @@ export class BattleScene {
     this.t = 0;
     this.pause = null;
     const mode = setup.mode;
-    const p1 = mode === 'versus' ? new HumanController([KEYMAPS.p1], [0]) : new HumanController([KEYMAPS.solo], [0]);
+    const p1 = mode === 'versus' ? new HumanController([KEYMAPS.p1], [0], true) : new HumanController([KEYMAPS.solo], [0], true);
     this.p1Ctrl = p1;
     let p2;
     this.training = mode === 'training' ? (app.training = app.training || { ...TRAINING_DEFAULT }) : null;
@@ -427,6 +453,9 @@ export class BattleScene {
     this.pause = new PauseMenu(this);
   }
 
+  // 觸控點擊：只在暫停選單有作用（對戰中的點擊不做事）
+  tap(x, y) { if (this.pause) this.pause.tap(x, y); }
+
   // 訓練錄製：1P 的輸入暫時操控假人
   startRecording() {
     const T = this.training;
@@ -471,7 +500,10 @@ export class BattleScene {
   draw(g) {
     drawBattle(g, this.battle, this.t);
     if (this.recording) text(g, '● REC', VIEW_W - 90, 120, { size: 22, color: this.t % 40 < 25 ? '#ff3b2f' : '#802020' });
-    if (this.training && !this.pause) text(g, 'Esc 選單　R 重設位置（按住←/→ 到牆角）', VIEW_W / 2, 712, { size: 14, color: '#ffffffaa', font: FONT_TC, outline: null });
+    if (this.training && !this.pause) {
+      const hint = touchState.enabled ? 'Ⅱ 選單　⟲ 重設位置（按住搖桿←/→ 到牆角）' : 'Esc 選單　R 重設位置（按住←/→ 到牆角）';
+      text(g, hint, VIEW_W / 2, 712, { size: 14, color: '#ffffffaa', font: FONT_TC, outline: null });
+    }
     if (this.pause) this.pause.draw(g);
   }
 }
@@ -529,6 +561,19 @@ class PauseMenu {
     this.items = items;
   }
   close() { this.s.pause = null; audio.sfx('ok'); }
+  // 觸控：點項目＝選取並執行；有選項值的列：點數值的 ◀ / ▶ 切換，點標籤先選取、再點一次往後切換
+  tap(x, y) {
+    if (this.sub) { this.sub = null; audio.sfx('back'); return; }
+    const gap = this.items.length > 10 ? 40 : 56;
+    const cx = VIEW_W / 2 - 60;
+    const i = rowAt(x, y, cx, 130, gap, this.items.length, 330);
+    if (i < 0) return;
+    const it = this.items[i];
+    const onValue = x > cx + 140;
+    if (it.list && !onValue && this.sel !== i) { this.sel = i; audio.sfx('move'); return; }
+    this.sel = i;
+    this.update({ any: it.list ? (onValue && x < cx + 220 ? { left: true } : { right: true }) : { ok: true } });
+  }
   update(ev) {
     if (this.sub) { this.sub.update({ any: { ...ev.any, back: false, ok: false } }); if (ev.any.back || ev.any.ok) this.sub = null; return; }
     const e = ev.any;
@@ -610,9 +655,18 @@ export class ResultScene {
     }
     menuList(g, this.items, this.sel, 860, 440, 60);
   }
+  tap(x, y) {
+    const i = rowAt(x, y, 860, 440, 60, this.items.length);
+    if (i < 0) return;
+    this.sel = i;
+    this.update({ any: { ok: true } });
+    this.t--;
+  }
 }
 
 // ---------- 操作說明 ----------
+const SP_ARROW = { 5: ' 單按', 6: '+→', 4: '+←', 2: '+↓', 3: '+↘', 1: '+↙' };
+
 export class ControlsScene {
   constructor(app, back, chars) {
     this.app = app; this.back = back; this.t = 0;
@@ -625,6 +679,12 @@ export class ControlsScene {
     if (ev.any.left) { this.page = (this.page + this.pages - 1) % this.pages; audio.sfx('move'); }
     if (ev.any.right) { this.page = (this.page + 1) % this.pages; audio.sfx('move'); }
     if ((ev.any.back || ev.any.ok) && this.back) { audio.sfx('back'); this.app.go(this.back); }
+  }
+  tap(x) {
+    const e = { left: x < VIEW_W * 0.25, right: x > VIEW_W * 0.75 };
+    if (!e.left && !e.right) e.back = true;
+    this.update({ any: e });
+    this.t--;
   }
   draw(g) {
     g.fillStyle = '#0d0716';
@@ -646,9 +706,12 @@ export class ControlsScene {
       const c = CHARS[id];
       text(g, `${c.name}  ${c.nameZh}・${c.style}`, 120, y, { size: 22, color: c.color, align: 'left', font: FONT_TC });
       text(g, c.blurb, 120, y + 30, { size: 15, color: '#c9c2d8', align: 'left', font: FONT_TC, outline: null, shadow: false });
-      Object.values(c.moveNames).forEach((m, k) => {
+      // 觸控開啟簡易必殺時，指令後面加上 SP 對應方向
+      const spDir = {};
+      if (touchState.enabled && GAME.easySpecial) for (const [d, sp] of Object.entries(easyMap(c))) spDir[sp.move] = SP_ARROW[d];
+      Object.entries(c.moveNames).forEach(([key, m], k) => {
         text(g, m.zh, 140 + (k % 2) * 560, y + 64 + Math.floor(k / 2) * 30, { size: 17, color: '#fff', align: 'left', font: FONT_TC, outline: null, shadow: false });
-        text(g, m.cmd, 400 + (k % 2) * 560, y + 64 + Math.floor(k / 2) * 30, { size: 16, color: '#ffe9a8', align: 'left', font: FONT_TC, outline: null, shadow: false });
+        text(g, spDir[key] ? `${m.cmd}　SP${spDir[key]}` : m.cmd, 400 + (k % 2) * 560, y + 64 + Math.floor(k / 2) * 30, { size: 16, color: '#ffe9a8', align: 'left', font: FONT_TC, outline: null, shadow: false });
       });
       y += 160;
     }
@@ -673,6 +736,22 @@ export class OptionsScene {
       { label: '畫質', get value() { return { low: '效能', normal: '標準', high: '高' }[GAME.quality] || '標準'; }, change: (d) => { const o = ['low', 'normal', 'high']; GAME.quality = o[(o.indexOf(GAME.quality) + d + 3) % 3]; this.app.resize(); } },
       { label: '返回', act: () => this.app.go(this.back) },
     ];
+    // 觸控裝置才出現：SP 鍵 + 方向直接出必殺技
+    if (touchState.enabled) {
+      this.items.splice(this.items.length - 1, 0, { label: '簡易必殺（SP 鍵）', get value() { return GAME.easySpecial ? '開' : '關'; }, change: () => { GAME.easySpecial = !GAME.easySpecial; } });
+    }
+  }
+  // 觸控：點項目選取；點數值的 ◀ / ▶ 切換，已選中的列再點一次往後切換
+  tap(x, y) {
+    const cx = VIEW_W / 2 - 80;
+    const i = rowAt(x, y, cx, 160, 60, this.items.length, 360);
+    if (i < 0) return;
+    const it = this.items[i];
+    const onValue = x > cx + 140;
+    if (it.change && !onValue && this.sel !== i) { this.sel = i; audio.sfx('move'); return; }
+    this.sel = i;
+    this.update({ any: it.act ? { ok: true } : onValue && x < cx + 220 ? { left: true } : { right: true } });
+    this.t--;
   }
   update(ev) {
     this.t++;

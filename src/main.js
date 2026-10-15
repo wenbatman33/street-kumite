@@ -7,6 +7,7 @@ import { takeKeyPresses } from './input.js';
 import { DevTools, applyOverrides } from './devtools.js';
 import { audio } from './audio.js';
 import { bindGame, text, view } from './render.js';
+import { TouchLayer } from './touch.js';
 
 // 設定存檔（要在 resize 之前讀，畫質設定會影響畫布解析度）
 const SETTINGS_KEY = 'streetkumite-settings';
@@ -55,23 +56,38 @@ app.advance = (n = 60) => {
 };
 app.dev = new DevTools(app);
 
-// 第一次互動時啟用音訊（瀏覽器自動播放限制）
+// 第一次互動時啟用音訊（瀏覽器自動播放限制；行動版要 touchend 才算使用者操作）
 const unlock = () => audio.unlock();
 window.addEventListener('keydown', unlock);
 window.addEventListener('pointerdown', unlock);
+window.addEventListener('touchend', unlock);
 
 // 滑鼠：DEV 拖曳優先，否則交給場景
 const toLogical = (e) => {
   const r = canvas.getBoundingClientRect();
   return [((e.clientX - r.left) / r.width) * VIEW_W, ((e.clientY - r.top) / r.height) * VIEW_H];
 };
-canvas.addEventListener('pointerdown', (e) => {
+// tap = 觸控點擊：場景有 tap() 就用（觸控專用的點選行為），否則跟滑鼠一樣呼叫 click()
+function screenDown(e, tap) {
   const [x, y] = toLogical(e);
-  if (app.dev.pointerDown(x, y)) { canvas.setPointerCapture(e.pointerId); return; }
-  if (app.scene && app.scene.click) app.scene.click(x, y);
+  if (app.dev.pointerDown(x, y)) return true;
+  const s = app.scene;
+  if (s && tap && s.tap) s.tap(x, y);
+  else if (s && s.click) s.click(x, y);
+  return false;
+}
+canvas.addEventListener('pointerdown', (e) => {
+  if (screenDown(e, e.pointerType === 'touch')) canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', (e) => { const [x, y] = toLogical(e); app.dev.pointerMove(x, y); });
 canvas.addEventListener('pointerup', () => app.dev.pointerUp());
+
+// 觸控虛擬按鍵層（只在觸控裝置顯示）；沒按到按鍵的點擊轉給畫面
+app.touch = new TouchLayer(app, {
+  down: (e) => screenDown(e, true),
+  move: (e) => { const [x, y] = toLogical(e); app.dev.pointerMove(x, y); },
+  up: () => app.dev.pointerUp(),
+});
 
 // ---------- 載入 ----------
 let progress = 0;
@@ -125,6 +141,7 @@ function loop(now) {
     app.dev.applyPreview();
     app.scene.draw(g, frame);
   }
+  app.touch.frame();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
