@@ -1,0 +1,68 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #050208;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#game {
+  display: block;
+  image-rendering: auto;
+  background: #0a0410;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+}
+#devBtn {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 10, 30, 0.6);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 60;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+#devBtn:hover, #devBtn.on { opacity: 1; }
+#devBtn.on { background: #ff8a1e; color: #140808; }
+.lil-gui.root { max-height: calc(100vh - 20px); overflow-y: auto; }
+.dev-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.dev-modal .box {
+  width: min(720px, 92vw);
+  background: #1b1224;
+  color: #eee;
+  padding: 16px;
+  border-radius: 8px;
+  font: 14px/1.5 "Noto Sans TC", sans-serif;
+}
+.dev-modal textarea {
+  width: 100%;
+  height: 50vh;
+  box-sizing: border-box;
+  background: #0d0814;
+  color: #bfe9ff;
+  border: 1px solid #443355;
+  font: 12px/1.4 monospace;
+}
+.dev-modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.dev-modal button { padding: 6px 16px; border: 0; border-radius: 4px; background: #ff8a1e; color: #140808; font-weight: 700; cursor: pointer; }
+.dev-modal button.cancel { background: #554466; color: #fff; }

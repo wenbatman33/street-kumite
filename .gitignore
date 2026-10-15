@@ -1,0 +1,7 @@
+# AI 生圖原圖（體積大，約 100MB；遊戲使用的是 assets/ 內處理後的 atlas）
+assets_src/raw/
+assets_src/review/
+scripts/logs/
+scripts/*.out
+.DS_Store
+__pycache__/
