@@ -9,8 +9,11 @@ import { LAYOUT, STAGES, PHYS, FX, VIEW_W } from './config.js';
 import { CHARS, refreshMove } from './chars/index.js';
 import { view } from './render.js';
 import { ASSETS } from './assets.js';
+import { audio, MIX, SONG_NAMES } from './audio.js';
 
 const LS_KEY = 'streetkumite-dev-overrides';
+// 覆寫檔版本：預設值有改動時加一，舊版覆寫檔載入時略過被改過的項目，新預設才會生效
+const OVERRIDE_VERSION = 2;
 const dirtyMoves = new Set();
 
 export class DevTools {
@@ -123,15 +126,44 @@ export class DevTools {
     stg.add(LAYOUT, 'stageW', 1300, 3000, 10).name('舞台寬').onChange(() => this.save());
     stg.add(LAYOUT, 'edge', 0, 120, 1).name('畫面邊距').onChange(() => this.save());
     stg.add(LAYOUT, 'startGap', 150, 800, 1).name('開場距離').onChange(() => this.save());
-    stg.add(LAYOUT, 'shadowAlpha', 0, 1, 0.01).name('影子').onChange(() => this.save());
+    const sh = stg.addFolder('影子');
+    sh.close();
+    const SH = LAYOUT.shadow;
+    sh.add(SH, 'cast', 0, 1, 0.01).name('投射影子濃度').onChange(() => this.save());
+    sh.add(SH, 'contact', 0, 1, 0.01).name('腳底陰影濃度').onChange(() => this.save());
+    sh.add(SH, 'contactW', 0.3, 2, 0.01).name('腳底陰影寬度').onChange(() => this.save());
+    sh.add(SH, 'blur', 0, 10, 0.5).name('模糊').onChange(() => this.save());
+    sh.add(SH, 'fade', 100, 800, 10).name('離地多高消失').onChange(() => this.save());
+    sh.add(SH, 'squash', -0.5, 0.5, 0.01).name('預設壓扁（負=逆光）').onChange(() => this.save());
+    sh.add(SH, 'skew', -1.5, 1.5, 0.01).name('預設斜度').onChange(() => this.save());
     for (const [id, s] of Object.entries(STAGES)) {
       const f = stg.addFolder(`背景 ${s.nameZh}`);
       f.close();
       f.add(s, 'scale', 0.5, 2, 0.01).onChange(() => this.save());
       f.add(s, 'y', 0.3, 1.2, 0.005).name('地面位於圖高').onChange(() => this.save());
       f.add(s, 'parallax', 0, 1, 0.01).onChange(() => this.save());
+      if (!s.light) s.light = [LAYOUT.shadow.squash, LAYOUT.shadow.skew];
+      f.add(s.light, 0, -0.5, 0.5, 0.01).name('影子壓扁（負=逆光）').onChange(() => this.save());
+      f.add(s.light, 1, -1.5, 1.5, 0.01).name('影子斜度').onChange(() => this.save());
       void id;
     }
+
+    // 配樂：試聽、速度、各聲部音量
+    const mu = gui.addFolder('🎵 配樂');
+    mu.close();
+    const songs = {};
+    SONG_NAMES.forEach((n, i) => { songs[n] = i; });
+    const M = {
+      song: Math.max(0, audio.playing),
+      play: () => { audio.unlock(); audio.playMusic(M.song); },
+      stop: () => audio.stopMusic(),
+    };
+    mu.add(M, 'song', songs).name('曲目').onChange(() => M.play());
+    mu.add(M, 'play').name('▶ 播放');
+    mu.add(M, 'stop').name('■ 停止');
+    mu.add(audio, 'tempo', 0.7, 1.3, 0.01).name('速度倍率（重播生效）');
+    const mixName = { music: '音樂總音量', kick: '大鼓', snare: '小鼓', hat: '鈸', perc: '打擊', bass: '貝斯', lead: '主旋律', pad: '弦樂', arp: '琶音', stab: '銅管短打', gtr: '吉他' };
+    for (const k of Object.keys(MIX)) mu.add(MIX, k, 0, k === 'music' ? 1 : 1.5, 0.01).name(mixName[k] || k).onChange((v) => { audio.setMix(k, v); this.save(); });
 
     // 物理與打擊感
     const ph = gui.addFolder('⚙ 物理 / 打擊感');
@@ -371,8 +403,8 @@ export class DevTools {
       chars[id] = { hp: c.hp, walkF: c.walkF, walkB: c.walkB, jumpVy: c.jumpVy, jumpVx: c.jumpVx, spriteAdj: adj, moves };
     }
     const stages = {};
-    for (const [id, s] of Object.entries(STAGES)) stages[id] = { scale: s.scale, y: s.y, parallax: s.parallax };
-    return { version: 1, LAYOUT, STAGES: stages, PHYS, FX, chars };
+    for (const [id, s] of Object.entries(STAGES)) stages[id] = { scale: s.scale, y: s.y, parallax: s.parallax, light: s.light };
+    return { version: OVERRIDE_VERSION, LAYOUT, STAGES: stages, PHYS, FX, MIX, chars };
   }
 
   save() {
@@ -421,9 +453,12 @@ export function applyOverrides(o) {
     try { o = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { o = null; }
   }
   if (!o) return false;
+  // v1 → v2：頓幀、震動改了預設值（輕中重拉開、必殺技分 SL/SM/SH）
+  if ((o.version || 1) < 2 && o.FX) { delete o.FX.hitstop; delete o.FX.shake; }
   if (o.LAYOUT) deepAssign(LAYOUT, o.LAYOUT);
   if (o.PHYS) deepAssign(PHYS, o.PHYS);
   if (o.FX) deepAssign(FX, o.FX);
+  if (o.MIX) for (const [k, v] of Object.entries(o.MIX)) if (k in MIX) audio.setMix(k, v);
   if (o.STAGES) for (const [id, s] of Object.entries(o.STAGES)) if (STAGES[id]) Object.assign(STAGES[id], s);
   if (o.chars) {
     for (const [id, c] of Object.entries(o.chars)) {

@@ -55,6 +55,11 @@ export const STATE_ANIMS = {
   down:   { a: 'down', f: [4] },
   getup:  { a: 'down', f: [5, 6, 7], fps: 0 },     // fps 0 = 依狀態進度分配
   thrown: { a: 'hit', f: [3, 4], fps: 8 },
+  // 被投演出姿勢（投技路徑的第 5 欄指定）
+  thrownPull: { a: 'hit', f: [1] },
+  thrownGut: { a: 'hit', f: [3, 4], fps: 10 },
+  thrownUp: { a: 'down', f: [1] },
+  thrownFly: { a: 'down', f: [2] },
   win:    { a: 'win', f: [0, 1, 2, 3, 4, 5], fps: 0 },
   intro:  { a: 'win', f: [2] },
 };
@@ -73,6 +78,23 @@ export const HURT = {
   crouch: [-46, 0, 92, 170],
   air: [-38, 40, 76, 210],
   down: [-110, 0, 220, 60],
+};
+
+// 一般投技演出（所有角色共用骨架；傷害、暈眩、音效寫在角色檔）
+// 投技動畫影格：1 伸手、2 抓住拉近、3 提膝、4 推出、5 收招
+// path：[tick, 被投者在前方的距離, 高度, 旋轉角度（度，正值 = 往投技方前方翻）, 被投者姿勢 pull/gut/up/fly]
+// 前摔：抓住拉近 → 膝撞肚子把人頂起 → 往前上方拋出，空中翻轉後重摔在前方
+export const THROW_FWD = {
+  seq: [[2, 8], [3, 10], [4, 8], [5, 16]],
+  path: [[0, 85, 0, 0, 'pull'], [7, 66, 0, 0, 'pull'], [10, 62, 24, 0, 'gut'], [16, 66, 50, -5, 'gut'], [19, 84, 64, 10, 'up'], [24, 150, 150, 35, 'fly'], [30, 228, 90, 45, 'fly'], [33, 258, 6, 30, 'fly']],
+  impacts: [10],                      // 提膝命中的瞬間（只有特效、音效）
+  hitT: 33, launch: [3, 6], hitstop: 10, shake: 9, dust: true, slam: true,
+};
+// 背摔（按住「後」投）：抓住拉近 → 從頭上甩過去 → 摔在背後（左右換邊）
+export const THROW_BACK = {
+  seq: [[2, 6], [3, 8], [2, 10], [0, 18]],
+  path: [[0, 85, 0, 0, 'pull'], [6, 58, 0, 0, 'pull'], [10, 42, 70, -20, 'up'], [15, 8, 205, -60, 'fly'], [21, -75, 165, -95, 'fly'], [25, -125, 8, -110, 'fly']],
+  hitT: 25, launch: [-3, 6], hitstop: 10, shake: 9, dust: true, slam: true,
 };
 
 // 打擊強度共用值

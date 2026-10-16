@@ -2,10 +2,12 @@
 import { PHYS, LAYOUT, FX } from './config.js';
 import { STATE_ANIMS, HURT, STRENGTH } from './chars/common.js';
 import { ASSETS } from './assets.js';
+import { strengthKey, HEAVY } from './effects.js';
 import { rel } from './input.js';
 
 const NEUTRAL = new Set(['stand', 'crouch']);
 const BLOCKABLE = new Set(['stand', 'crouch', 'blockstun']);
+const THROWN_POSE = { pull: 'thrownPull', gut: 'thrownGut', up: 'thrownUp', fly: 'thrownFly' };
 
 export class Fighter {
   constructor(def, side, input, battle) {
@@ -43,6 +45,7 @@ export class Fighter {
     this.st = 0;
     Object.assign(this, extra);
     if (s !== 'move') { this.move = null; }
+    if (s !== 'thrown') { this.rot = 0; this.throwPose = null; }
   }
 
   get airborne() { return this.y > 0.01 || this.state === 'air' || this.state === 'airHit'; }
@@ -143,6 +146,7 @@ export class Fighter {
     const throwPair = inp.pair('LP', 'LK');
     const throwDir = (rd === 4 || rd === 6) && inp.buffered('HP');
     if ((throwPair || throwDir) && this.state === 'stand') {
+      this.throwBack = rd === 4;   // 按住後 = 背摔
       if (this.battle.canThrow(this)) {
         inp.consume('LP'); inp.consume('LK'); inp.consume('HP');
         this.startMove('throw');
@@ -287,8 +291,14 @@ export class Fighter {
         if (this.dizzyT <= 0) this.toNeutral();
         break;
       case 'thrown': break;     // 位置由投技方控制
+      case 'ko':
+        // 倒地後靠摩擦停下（原本水平速度沒歸零，屍體會一路滑到牆邊）
+        this.vx *= 0.78;
+        if (Math.abs(this.vx) < 0.05) this.vx = 0;
+        break;
       default: break;
     }
+    this.updateMass();
 
     // 暈眩值自然回復
     this.stunIdle++;
@@ -366,7 +376,18 @@ export class Fighter {
         break;
       }
       case 'airHit':
-        if (this.ko) { this.setState('ko'); this.battle.dust(this.x, 1.6); this.battle.shake(FX.shake.KD); this.battle.sfx('land'); break; }
+        if (this.ko) {
+          if (!this.koBounced) {
+            // KO 第一次落地：彈起一小下，水平速度減半
+            this.koBounced = true;
+            this.y = 0.01; this.vy = 5.5; this.vx *= 0.45;
+            this.battle.dust(this.x, 1.6); this.battle.shake(FX.shake.KD); this.battle.sfx('land');
+            break;
+          }
+          this.setState('ko'); this.vx *= 0.5;
+          this.battle.dust(this.x, 1.0);
+          break;
+        }
         if (this.airReset) { this.setState('landing', { landT: 6, landSeq: null }); this.vx = 0; break; }
         this.setState('knockdown');
         this.vx = 0;
@@ -417,7 +438,8 @@ export class Fighter {
       else blocked = true;
       if (blocked) this.lowStance = crouchBlock;
     }
-    const hs = FX.hitstop[hit.hitstop || 'M'];
+    const sk = strengthKey(hit);
+    const hs = FX.hitstop[sk] ?? FX.hitstop[hit.hitstop || 'M'];
 
     // 霸體：出招中特定區間挨打不中斷（只吃一半傷害），armor = [開始, 結束, 可吸收次數]
     if (!blocked && this.state === 'move' && this.move.armor && !hit.unblockable) {
@@ -466,7 +488,7 @@ export class Fighter {
     att.gainMeter(hit.meter ?? 6);
     this.gainMeter((hit.meter ?? 6) * 0.5);
     this.hitstop = src.proj ? Math.round(hs * 0.8) : hs;
-    this.flash = FX.hitFlash;
+    this.flash = FX.hitFlash + (HEAVY.has(sk) ? 3 : 0);   // 重擊白閃久一點
 
     if (this.hp <= 0 && this.battle.noKO(this)) this.hp = 1;
     if (this.hp <= 0) { this.knockOut(att, hit, away); return 'hit'; }
@@ -495,7 +517,7 @@ export class Fighter {
 
   knockOut(att, hit, away) {
     this.hp = 0;
-    this.setState('airHit', { airReset: false, inKD: true, ko: true });
+    this.setState('airHit', { airReset: false, inKD: true, ko: true, koBounced: false });
     this.vx = away * 4.5;
     this.vy = 13;
     this.y = Math.max(this.y, 0.01);
@@ -551,7 +573,11 @@ export class Fighter {
         break;
       case 'blockstun': [anim, idx] = pick(this.lowStance ? STATE_ANIMS.blockLo : STATE_ANIMS.blockHi); break;
       case 'hitstun': [anim, idx] = pick(STATE_ANIMS[this.react] || STATE_ANIMS.hitHigh); break;
-      case 'thrown': [anim, idx] = pick(this.y > 30 ? STATE_ANIMS.airFall : STATE_ANIMS.thrown); break;
+      case 'thrown': {
+        const pose = this.throwPose && STATE_ANIMS[THROWN_POSE[this.throwPose]];
+        [anim, idx] = pick(pose || (this.y > 30 ? STATE_ANIMS.airFall : STATE_ANIMS.thrown));
+        break;
+      }
       case 'airHit': [anim, idx] = pick(this.vy > 2 ? STATE_ANIMS.airHit : STATE_ANIMS.airFall); break;
       case 'knockdown': [anim, idx] = pick(this.st < 6 ? STATE_ANIMS.downSlam : STATE_ANIMS.down); break;
       case 'ko': [anim, idx] = pick(this.st < 6 ? STATE_ANIMS.downSlam : STATE_ANIMS.down); break;
@@ -597,13 +623,24 @@ export class Fighter {
     return f ? (f.fy - f.cy) * this.k : 150;
   }
 
+  // 被打飛／被投（down 動畫）的重心高度：依目前影格「最低點到重心」的距離平滑過渡，
+  // y 就等於身體最低點離地高度 → 落地時剛好貼地，不會先浮在半空再掉下來
+  updateMass() {
+    const fi = this.frameInfo();
+    if (!fi.mass || fi.anim !== 'down') { this.massOff = null; return; }
+    const fr = this.sprite(fi);
+    const target = fr ? (fr.fy - fr.cy) * this.k : this.massY();
+    this.massOff = this.massOff == null ? this.massY() : this.massOff + (target - this.massOff) * 0.3;
+  }
+
   // 把 sprite 錨點換算成世界座標的轉換參數
   spriteXform(fi, fr, y = this.y) {
     const adj = this.def.spriteAdj[fi.anim] || {};
     const k = this.k * (adj.s || 1);
     const ax = fi.mass ? fr.cx : fr.fx;
     const ay = fi.mass ? fr.cy : fr.fy;
-    const baseY = y + (fi.mass ? this.massY() : 0) + (adj.dy || 0);
+    const mo = fi.mass ? (fi.anim === 'down' && this.massOff != null ? this.massOff : this.massY()) : 0;
+    const baseY = y + mo + (adj.dy || 0);
     return { k, ax, ay, baseY, dx: (adj.dx || 0) };
   }
 

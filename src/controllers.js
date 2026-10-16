@@ -277,7 +277,7 @@ export class AIController {
     // 近距離
     const r = R();
     if (P.grab && dist < 115 && r < 0.15 + this.L.aggro * 0.15 && this.use(me, P.grab, pick(['L', 'M', 'H']))) return raw;
-    if (dist < 110 && r < 0.18 + this.L.aggro * 0.1) { this.push([{ d: 6, b: ['HP'] }]); return raw; }
+    if (dist < 110 && r < 0.18 + this.L.aggro * 0.1) { this.push([{ d: R() < 0.4 ? 4 : 6, b: ['HP'] }]); return raw; }   // 投技（4 成機率背摔）
     if (r < 0.45) { this.push(this.combo(me, false)); return raw; }
     if (r < 0.58 && P.close && this.use(me, pick(P.close), pick(['L', 'M']))) return raw;
     if (r < 0.75) { this.blockLow = true; this.blockHold = 20; dirToRaw(raw, 1, me.facing); return raw; }

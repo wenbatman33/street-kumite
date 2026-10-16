@@ -12,7 +12,8 @@ export const LAYOUT = {
   stageW: 1900,          // 舞台寬度
   edge: 46,              // 角色與畫面邊緣的最小距離
   startGap: 440,         // 回合開始時兩人距離
-  shadowAlpha: 0.35,
+  // 影子：腳底接觸陰影 + 角色剪影投射在地上（squash = 壓扁比例，正值往後方地面延伸、負值往鏡頭方向；skew = 斜向）
+  shadow: { contact: 0.6, contactW: 1, cast: 0.5, squash: -0.12, skew: 0.25, blur: 3, fade: 420 },   // squash/skew 為預設值，舞台有 light 時以舞台為準
   hud: {
     bar:    { x: 54, y: 34, w: 500, h: 26, skew: 14 },     // P1 血條（P2 左右鏡像）
     name:   { x: 136, y: 76, size: 22 },
@@ -62,15 +63,16 @@ export const LAYOUT = {
 };
 
 // 每個舞台的背景擺放（scale=相對於鋪滿所需大小的倍率，y=背景往上移多少）
+// light = 影子方向 [壓扁, 斜度]：壓扁負值 = 逆光（影子落在腳前、往鏡頭方向），正值 = 順光（影子往後方地面延伸）
 export const STAGES = {
-  market: { name: 'NEON MARKET', nameZh: '霓虹夜市', img: 'assets/stages/market.webp', scale: 1.0, y: 0.80, parallax: 0.85, tint: 'rgba(20,10,40,0.10)', bgm: 0 },
-  beach:  { name: 'SUNSET RODA', nameZh: '夕陽廣場', img: 'assets/stages/beach.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(40,10,0,0.05)', bgm: 1 },
-  steppe: { name: 'GREAT STEPPE', nameZh: '草原祭典', img: 'assets/stages/steppe.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 2 },
-  harbor: { name: 'FROZEN HARBOR', nameZh: '極光港口', img: 'assets/stages/harbor.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(10,20,50,0.08)', bgm: 3 },
-  rooftop: { name: 'MOONLIT ROOFS', nameZh: '月下屋頂', img: 'assets/stages/rooftop.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(20,10,40,0.08)', bgm: 3 },
-  temple: { name: 'CLOUD TEMPLE', nameZh: '雲海寺院', img: 'assets/stages/temple.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 2 },
-  gym:    { name: 'UNDERGROUND RING', nameZh: '地下拳場', img: 'assets/stages/gym.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(0,0,0,0.08)', bgm: 0 },
-  stadium: { name: 'NIGHT STADIUM', nameZh: '夜光拳館', img: 'assets/stages/stadium.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 1 },
+  market: { name: 'NEON MARKET', nameZh: '霓虹夜市', img: 'assets/stages/market.webp', scale: 1.0, y: 0.80, parallax: 0.85, tint: 'rgba(20,10,40,0.10)', bgm: 0, light: [-0.13, 0.25] },
+  beach:  { name: 'SUNSET RODA', nameZh: '夕陽廣場', img: 'assets/stages/beach.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(40,10,0,0.05)', bgm: 1, light: [-0.12, 0.45] },
+  steppe: { name: 'GREAT STEPPE', nameZh: '草原祭典', img: 'assets/stages/steppe.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 2, light: [0.18, 0.5] },
+  harbor: { name: 'FROZEN HARBOR', nameZh: '極光港口', img: 'assets/stages/harbor.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(10,20,50,0.08)', bgm: 3, light: [-0.12, -0.2] },
+  rooftop: { name: 'MOONLIT ROOFS', nameZh: '月下屋頂', img: 'assets/stages/rooftop.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(20,10,40,0.08)', bgm: 4, light: [0.16, -0.45] },
+  temple: { name: 'CLOUD TEMPLE', nameZh: '雲海寺院', img: 'assets/stages/temple.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 5, light: [0.18, 0.35] },
+  gym:    { name: 'UNDERGROUND RING', nameZh: '地下拳場', img: 'assets/stages/gym.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: 'rgba(0,0,0,0.08)', bgm: 0, light: [-0.1, 0.12] },
+  stadium: { name: 'NIGHT STADIUM', nameZh: '夜光拳館', img: 'assets/stages/stadium.webp', scale: 1.0, y: 0.82, parallax: 0.85, tint: '', bgm: 1, light: [0.14, -0.3] },
 };
 
 // 物理（角色個別值在角色檔覆寫）
@@ -90,8 +92,9 @@ export const PHYS = {
 
 // 打擊感
 export const FX = {
-  hitstop: { L: 8, M: 10, H: 13, S: 12, SU: 16, KO: 30 },
-  shake: { L: 0, M: 2, H: 5, KD: 7, KO: 12 },
+  // 頓幀與震動：L/M/H = 普通技，SL/SM/SH = 必殺技輕／中／重，S = 無強度的必殺（超必殺等）
+  hitstop: { L: 6, M: 10, H: 15, S: 12, SL: 9, SM: 12, SH: 17, SU: 16, KO: 30 },
+  shake: { L: 0, M: 2, H: 6, SL: 2, SM: 4, SH: 9, KD: 7, KO: 12 },
   sparkScale: 1.0,
   koSlow: 3,             // KO 慢動作倍率
   superFlash: 44,        // 超必殺暗場 tick

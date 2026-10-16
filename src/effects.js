@@ -1,6 +1,14 @@
 // 特效：打擊火花、防禦火花、落地煙塵、文字彈出、畫面震動（只存資料，繪製在 render.js）
 import { FX } from './config.js';
 
+// 打擊強度鍵：普通技 L/M/H；必殺技依按鍵強度分成 SL/SM/SH（原本必殺全部共用 S，輕中重沒差）
+export function strengthKey(h) {
+  if ((h.sp || h.hitstop === 'S') && h.st) return 'S' + h.st;
+  if (h.hitstop === 'S' || h.hitstop === 'SU') return h.hitstop;
+  return h.spark || h.hitstop || 'M';
+}
+export const HEAVY = new Set(['H', 'SM', 'SH', 'SU']);
+
 export class Effects {
   constructor() {
     this.list = [];
@@ -10,7 +18,7 @@ export class Effects {
   }
 
   spark(x, y, kind, dir, strength = 'M') {
-    const size = { L: 0.75, M: 1, H: 1.3, S: 1.25, SU: 1.6 }[strength] || 1;
+    const size = { L: 0.62, M: 1, H: 1.45, S: 1.25, SL: 1.0, SM: 1.3, SH: 1.75, SU: 1.7 }[strength] || 1;
     const block = kind === 'block';
     const rays = [];
     const n = block ? 7 : 10;

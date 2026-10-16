@@ -2,8 +2,11 @@
 import { LAYOUT, VIEW_W, PHYS, FX, GAME } from './config.js';
 import { Fighter } from './fighter.js';
 import { PlayerInput } from './input.js';
-import { Effects } from './effects.js';
+import { Effects, strengthKey, HEAVY } from './effects.js';
 import { audio } from './audio.js';
+
+// 命中音效：依打擊強度（必殺技的重版有額外的低頻爆裂）
+const HIT_SFX = { L: 'hitL', M: 'hitM', H: 'hitH', S: 'hitH', SL: 'hitM', SM: 'hitH', SH: 'hitX', SU: 'hitX' };
 
 const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
@@ -196,7 +199,7 @@ export class Battle {
   }
 
   contactFx(a, d, res, h, px, py, dir) {
-    const strength = h.spark || h.hitstop || 'M';
+    const strength = strengthKey(h);
     if (res === 'armor') {
       this.fx.spark(px, py, 'block', dir, strength);
       this.fx.ring(d.x, 170, '#ffb347', 1.2);
@@ -208,8 +211,9 @@ export class Battle {
       audio.sfx('block');
     } else {
       this.fx.spark(px, py, 'hit', dir, strength);
-      audio.sfx(strength === 'L' ? 'hitL' : strength === 'M' ? 'hitM' : 'hitH');
-      this.fx.shake(h.kd ? FX.shake.KD : FX.shake[strength === 'SU' ? 'H' : strength] || 0);
+      audio.sfx(HIT_SFX[strength] || 'hitM');
+      this.fx.shake(Math.max(h.kd ? FX.shake.KD : 0, FX.shake[strength === 'SU' ? 'SH' : strength] || 0));
+      if (HEAVY.has(strength)) this.fx.ring(px, py, strength === 'H' ? '#ffe9b0' : '#fff3c4', strength === 'SH' || strength === 'SU' ? 1.4 : 1);   // 重擊衝擊波
       if (d.counterHit) this.fx.text(d.x, 300, 'COUNTER', '#ff5a3c', 28);
       if (!this.firstAttack && !this.isTraining) {
         this.firstAttack = true;
@@ -368,8 +372,10 @@ export class Battle {
   tryGrab(a, m = a.def.throw) {
     if (!this.canThrow(a, m)) return false;
     const d = this.fighters[1 - a.side];
-    const T = m.onGrab;
+    // 一般投技按住「後」= 背摔
+    const T = a.throwBack && m.onGrabBack ? m.onGrabBack : m.onGrab;
     a.grabMove = m;
+    a.grabT = T;
     a.vx = 0;
     a.stopped = true;
     a.grabbed = true;
@@ -388,20 +394,30 @@ export class Battle {
   tickThrow(a) {
     const d = a.throwing;
     if (!d || d.state !== 'thrown') return;
-    const T = (a.grabMove || a.def.throw).onGrab;
+    const T = a.grabT || (a.grabMove || a.def.throw).onGrab;
     if (T.path) {
-      // 依關鍵影格移動被投者：[tick, 前方距離, 高度]
+      // 依關鍵影格移動被投者：[tick, 前方距離, 高度, 旋轉角度, 姿勢]
       const P = T.path;
       let k = P.length - 1;
       for (let i = 0; i < P.length - 1; i++) if (a.mt < P[i + 1][0]) { k = i; break; }
-      const [t0, x0, y0] = P[k], [t1, x1, y1] = P[Math.min(k + 1, P.length - 1)];
+      const [t0, x0, y0, r0 = 0, pose] = P[k], [t1, x1, y1, r1 = 0] = P[Math.min(k + 1, P.length - 1)];
       const u = t1 > t0 ? Math.max(0, Math.min(1, (a.mt - t0) / (t1 - t0))) : 1;
       d.x = a.x + a.facing * (x0 + (x1 - x0) * u);
       d.y = y0 + (y1 - y0) * u;
+      d.rot = (r0 + (r1 - r0) * u) * a.facing;
+      d.throwPose = pose || null;
       if (Math.abs(x1 - x0) > 1 && Math.sign(x1) !== Math.sign(x0)) d.facing = a.mt < (t0 + t1) / 2 ? -a.facing : a.facing;
     } else {
       const tx = a.x + a.facing * 90;
       d.x += (tx - d.x) * 0.5;
+    }
+    // 演出中的打擊點（例：提膝撞肚子），只有特效與音效
+    if (T.impacts && T.impacts.includes(a.mt)) {
+      this.fx.spark(d.x - a.facing * 10, d.y + 150, 'hit', a.facing, 'M');
+      this.fx.shake(3);
+      d.flash = 4;
+      a.hitstop = d.hitstop = 5;
+      audio.sfx('hitM');
     }
     if (a.mt === T.hitT) {
       a.throwing = null;
@@ -410,7 +426,14 @@ export class Battle {
       d.combo = 1; d.comboDmg = dmg; d.lastDmg = dmg;
       d.stun += T.stun;
       a.gainMeter(10);
-      this.fx.spark(d.x, 170, 'hit', a.facing, 'H');
+      d.rot = 0;
+      d.throwPose = null;
+      if (T.slam) {
+        // 重摔落地：地面衝擊波、塵土、低頻重擊
+        this.fx.spark(d.x, d.y + 70, 'hit', a.facing, 'H');
+        this.fx.ring(d.x, 12, '#ffe9b0', 1.5);
+        audio.sfx('land');
+      } else this.fx.spark(d.x, 170, 'hit', a.facing, 'H');
       this.fx.shake(FX.shake.H);
       audio.sfx(T.sound || 'hitH');
       if (d.hp <= 0) { d.knockOut(a, {}, a.facing); return; }
@@ -457,7 +480,7 @@ export class Battle {
 
   techThrow(a, d) {
     if (!a || !a.grabbed) return;
-    if ((a.grabMove || a.def.throw).onGrab.noTech) return;   // 指令投無法拆
+    if ((a.grabT || (a.grabMove || a.def.throw).onGrab).noTech) return;   // 指令投無法拆
     a.grabbed = false;
     a.throwing = null;
     const dir = Math.sign(d.x - a.x) || -a.facing;
@@ -544,6 +567,12 @@ export class Battle {
   }
 
   onMoveStart(f, mv) {
+    // 必殺技起手依強度給提示：中＝小光圈、重＝大光圈 + 發光 + 蓄力音
+    if (mv.type === 'special' && (mv.st === 'M' || mv.st === 'H')) {
+      const big = mv.st === 'H';
+      this.fx.ring(f.x, f.y + 160, f.def.color, big ? 1.2 : 0.9);
+      if (big) { this.fx.ring(f.x, f.y + 160, '#ffffff', 2.1); f.flash = 6; audio.sfx('powerH'); }
+    }
     if (mv.sound && mv.type !== 'super') audio.sfx(mv.sound);
     else if (mv.type === 'normal') audio.sfx(mv.name.includes('H') ? 'whiffH' : mv.name.includes('M') ? 'whiffM' : 'whiffL');
     if (mv.shout) audio.shout(f.def.id);

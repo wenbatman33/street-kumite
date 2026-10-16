@@ -91,6 +91,7 @@ function drawFighter(g, f, camX, t) {
     const x = f.spriteXform(fi, fr, f.ry);
     g.save();
     g.translate(sx + f.facing * x.dx, LAYOUT.groundY - x.baseY);
+    if (f.rot) g.rotate((f.rot * Math.PI) / 180);   // 被投演出中的空中翻轉（以錨點為軸）
     g.scale(f.facing * x.k, x.k);
     g.drawImage(imgs[fr.p], fr.x, fr.y, fr.w, fr.h, -x.ax, -x.ay, fr.w, fr.h);
     if (f.flash > 0) {
@@ -158,14 +159,74 @@ function star(g, x, y, r) {
   g.fill();
 }
 
+// ---------- 影子 ----------
+// 角色剪影快取：縮小 + 模糊後塗黑（放大畫回去時邊緣自然柔和）
+const SIL_S = 0.25;
+const silCache = new Map();
+function silhouette(id, img, fr, blur) {
+  const key = `${id}:${fr.p}:${fr.x}:${fr.y}:${blur}`;
+  let c = silCache.get(key);
+  if (c) return c;
+  const pad = 6;
+  c = document.createElement('canvas');
+  c.width = Math.ceil(fr.w * SIL_S) + pad * 2;
+  c.height = Math.ceil(fr.h * SIL_S) + pad * 2;
+  const cg = c.getContext('2d');
+  if (blur) cg.filter = `blur(${blur * SIL_S * 2}px)`;
+  cg.drawImage(img, fr.x, fr.y, fr.w, fr.h, pad, pad, fr.w * SIL_S, fr.h * SIL_S);
+  cg.filter = 'none';
+  cg.globalCompositeOperation = 'source-in';
+  cg.fillStyle = '#000';
+  cg.fillRect(0, 0, c.width, c.height);
+  c.pad = pad;
+  silCache.set(key, c);
+  return c;
+}
+
+const LYING = new Set(['knockdown', 'ko', 'getup']);
+
 function drawShadow(g, f, camX) {
   if (f.invisible) return;
-  const h = Math.min(1, f.ry / 300);
-  const w = (f.state === 'knockdown' || f.state === 'ko' ? 110 : 70) * (1 - h * 0.5);
-  g.fillStyle = `rgba(0,0,0,${LAYOUT.shadowAlpha * (1 - h * 0.6)})`;
-  g.beginPath();
-  g.ellipse(f.rx - camX, LAYOUT.groundY + 2, w, 12 * (1 - h * 0.4), 0, 0, Math.PI * 2);
-  g.fill();
+  const L = LAYOUT.shadow;
+  const sx = f.rx - camX, gy = LAYOUT.groundY;
+  const h = Math.max(0, f.ry);
+  const fade = Math.max(0, 1 - h / L.fade);          // 離地越高越淡
+  if (fade <= 0) return;
+  // 1) 投射陰影：目前影格的剪影「站在地上」的姿勢，壓扁 + 斜切貼在地面
+  const fi = f.frameInfo();
+  const fr = f.sprite(fi);
+  if (fr && L.cast > 0) {
+    const sil = silhouette(f.def.id, ASSETS.chars[f.def.id].images[fr.p], fr, L.blur);
+    const x = f.spriteXform(fi, fr, 0);
+    const k = x.k * (0.75 + 0.25 * fade);           // 跳高時影子縮小
+    const lt = (STAGES[f.battle.stage] || {}).light;
+    const squash = lt ? lt[0] : L.squash, skew = lt ? lt[1] : L.skew;
+    const base = x.baseY;                            // 以 y = 0（貼地）計算的錨點高度
+    g.save();
+    g.globalAlpha = L.cast * fade;
+    // 局部座標 (u,v) = 影格像素相對錨點；高度 Y = base - v*k → 地面上的位置 x += skew*Y、y = gy - squash*Y
+    g.transform(f.facing * k, 0, -skew * k, squash * k, sx + f.facing * x.dx + skew * base, gy - squash * base);
+    const p = sil.pad / SIL_S;
+    g.drawImage(sil, -x.ax - p, -x.ay - p, sil.width / SIL_S, sil.height / SIL_S);
+    g.restore();
+  }
+  // 2) 接觸陰影：腳底柔和的暗區（躺地時拉長）
+  if (L.contact > 0) {
+    const w = (LYING.has(f.state) ? 125 : f.crouching ? 80 : 62) * L.contactW * (f.def.size || 1) * (1 - (1 - fade) * 0.5);
+    const hh = 14 * (1 - (1 - fade) * 0.4);
+    g.save();
+    g.translate(sx, gy + 2);
+    g.scale(w / hh, 1);
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, hh);
+    grd.addColorStop(0, `rgba(0,0,0,${L.contact * fade})`);
+    grd.addColorStop(0.6, `rgba(0,0,0,${L.contact * fade * 0.55})`);
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(0, 0, hh, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
 }
 
 // ---------- 飛行道具 ----------
