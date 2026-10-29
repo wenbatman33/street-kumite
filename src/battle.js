@@ -1,12 +1,15 @@
 // 對戰：回合流程、碰撞（推擠／打擊／飛行道具／投技）、鏡頭、計時、訓練模式掛鉤
-import { LAYOUT, VIEW_W, PHYS, FX, GAME } from './config.js';
+import { LAYOUT, VIEW_W, PHYS, FX, GAME, STAGES } from './config.js';
 import { Fighter } from './fighter.js';
 import { PlayerInput } from './input.js';
 import { Effects, strengthKey, HEAVY } from './effects.js';
 import { audio } from './audio.js';
+import { StageFX } from './stagefx.js';
 
 // 命中音效：依打擊強度（必殺技的重版有額外的低頻爆裂）
 const HIT_SFX = { L: 'hitL', M: 'hitM', H: 'hitH', S: 'hitH', SL: 'hitM', SM: 'hitH', SH: 'hitX', SU: 'hitX' };
+// 跳入攻擊命中音：多一層低頻悶響
+const JUMP_SFX = { L: 'hitL', M: 'hitJ', H: 'hitJ' };
 
 const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
@@ -19,6 +22,8 @@ export class Battle {
     this.training = opts.training || null;
     this.controllers = opts.controllers;
     this.fx = new Effects();
+    this.fx.dustColor = (STAGES[this.stage] || {}).dust || null;
+    this.stagefx = new StageFX(this.stage);   // 舞台動態元素（天氣、觀眾反應）
     this.autoBoxes = true;
     this.fighters = opts.chars.map((def, i) => new Fighter(def, i, new PlayerInput(), this));
     if (opts.chars[0].id === opts.chars[1].id) this.fighters[1].alt = true;
@@ -39,6 +44,10 @@ export class Battle {
   }
 
   get isTraining() { return this.mode === 'training'; }
+  // 鏡頭拉近後，畫面看得到的世界寬度
+  get viewW() { return VIEW_W / (LAYOUT.camZoom || 1); }
+  // 世界座標 → 畫面座標（鏡頭衝擊縮放的中心用）
+  toScreen(x, y) { const Z = LAYOUT.camZoom || 1; return [(x - this.camX) * Z, LAYOUT.groundY - y * Z]; }
 
   startRound() {
     this.round++;
@@ -76,7 +85,9 @@ export class Battle {
       f.input.feed(raw);
       f.input.updateCharge(f.facing);
     });
-    this.fx.update();
+    // K.O. 慢動作中，火花、血沫也跟著放慢
+    this.fx.update(this.slow > 0 && (this.slow - 1) % FX.koSlow !== 0);
+    this.stagefx.update(this.camX);
     this.msgs = this.msgs.filter((m) => ++m.t < m.life);
 
     if (this.superT > 0) {
@@ -161,7 +172,7 @@ export class Battle {
   }
 
   sfx(name) { audio.sfx(name); }
-  shake(a) { this.fx.shake(a); }
+  shake(a, axis = 'y') { this.fx.shake(a, axis); }
   dust(x, s) { this.fx.dust(x, s); }
 
   // ---------- 判定 ----------
@@ -200,6 +211,8 @@ export class Battle {
 
   contactFx(a, d, res, h, px, py, dir) {
     const strength = strengthKey(h);
+    const jump = a.state === 'move' && a.airborne && a.move && a.move.air;   // 跳入攻擊
+    const tint = h.sp || h.superHit ? a.def.color : null;                 // 必殺技火花帶角色色
     if (res === 'armor') {
       this.fx.spark(px, py, 'block', dir, strength);
       this.fx.ring(d.x, 170, '#ffb347', 1.2);
@@ -210,11 +223,16 @@ export class Battle {
       this.fx.spark(px, py, 'block', dir, strength);
       audio.sfx('block');
     } else {
-      this.fx.spark(px, py, 'hit', dir, strength);
-      audio.sfx(HIT_SFX[strength] || 'hitM');
-      this.fx.shake(Math.max(h.kd ? FX.shake.KD : 0, FX.shake[strength === 'SU' ? 'SH' : strength] || 0));
-      if (HEAVY.has(strength)) this.fx.ring(px, py, strength === 'H' ? '#ffe9b0' : '#fff3c4', strength === 'SH' || strength === 'SU' ? 1.4 : 1);   // 重擊衝擊波
-      if (d.counterHit) this.fx.text(d.x, 300, 'COUNTER', '#ff5a3c', 28);
+      this.fx.spark(px, py, 'hit', dir, strength, tint, jump);
+      audio.sfx(jump ? JUMP_SFX[strength] || 'hitJ' : HIT_SFX[strength] || 'hitM');
+      this.fx.shake(Math.max(h.kd ? FX.shake.KD : 0, FX.shake[strength === 'SU' ? 'SH' : strength] || 0, jump && strength === 'H' ? FX.shake.M + 2 : 0), jump || h.kd ? 'y' : 'x');
+      if (HEAVY.has(strength)) this.fx.ring(px, py, tint || (strength === 'H' ? '#ffe9b0' : '#fff3c4'), strength === 'SH' || strength === 'SU' ? 1.4 : 1);   // 重擊衝擊波
+      // 重擊鏡頭衝擊
+      const z = jump && strength === 'H' ? FX.zoom.J : FX.zoom[strength] || 0;
+      if (z) this.fx.zoom(z, ...this.toScreen(px, py));
+      if (d.counterHit) { this.fx.text(d.x, 300, 'COUNTER', '#ff5a3c', 28); this.fx.ring(px, py, '#ff5a3c', 1.3); }
+      if ((strength === 'SH' || strength === 'SU') && d.hp > 0) this.fx.spit(d.x + dir * 20, d.y + 235 * (d.def.size || 1), dir, 5);   // 重擊吐血
+      if (HEAVY.has(strength) || d.counterHit) this.stagefx.cheer(strength === 'SH' || strength === 'SU' ? 0.45 : 0.25);   // 觀眾反應
       if (!this.firstAttack && !this.isTraining) {
         this.firstAttack = true;
         this.fx.text(a.x, 340, 'FIRST ATTACK', '#ffd84a', 26);
@@ -232,6 +250,11 @@ export class Battle {
     this.slow = 60 * FX.koSlow;
     this.fx.flashT = 8;
     this.fx.shake(FX.shake.KO);
+    this.fx.zoom(FX.zoom.KO, ...this.toScreen(d.x, d.y + 150), 70);
+    // 吐血
+    const dir = Math.sign(d.x - a.x) || -a.facing;
+    this.fx.spit(d.x + dir * 20, d.y + 235 * (d.def.size || 1), dir, 16);
+    this.stagefx.cheer(1);
     for (const f of this.fighters) f.hitstop = FX.hitstop.KO;
     const both = this.fighters.every((f) => f.hp <= 0);
     this.say(both ? 'DOUBLE K.O.' : 'K.O.', 140, '#ff3b2f');
@@ -311,7 +334,7 @@ export class Battle {
       if (p.cool > 0) { p.cool--; p.x += p.vx * 0.25; } else { p.x += p.vx; p.y += p.vy; }
       if (p.vy && p.y <= 4) { p.dead = true; this.fx.spark(p.x, 6, 'block', p.facing, 'L'); }   // 斜射道具落地
       if (p.t > p.life || p.x < -200 || p.x > LAYOUT.stageW + 200) p.dead = true;
-      if (Math.abs(p.x - (this.camX + VIEW_W / 2)) > VIEW_W / 2 + 160) p.dead = true;
+      if (Math.abs(p.x - (this.camX + this.viewW / 2)) > this.viewW / 2 + 160) p.dead = true;
     }
     // 道具互相抵消
     const ps = this.projectiles;
@@ -387,6 +410,10 @@ export class Battle {
     d.facing = -a.facing;
     d.vx = 0; d.vy = 0; d.y = 0; d.pushV = 0;
     d.combo = 0; d.comboDmg = 0;
+    // 抓住的瞬間雙方定格一下（原作的「抓到了」手感）
+    a.hitstop = d.hitstop = 6;
+    d.flash = 4;
+    this.fx.shake(2);
     audio.sfx('grab');
     return true;
   }
@@ -434,7 +461,8 @@ export class Battle {
         this.fx.ring(d.x, 12, '#ffe9b0', 1.5);
         audio.sfx('land');
       } else this.fx.spark(d.x, 170, 'hit', a.facing, 'H');
-      this.fx.shake(FX.shake.H);
+      this.fx.shake(FX.shake.H, 'y');
+      this.fx.zoom(FX.zoom.H, ...this.toScreen(d.x, 60));
       audio.sfx(T.sound || 'hitH');
       if (d.hp <= 0) { d.knockOut(a, {}, a.facing); return; }
       d.setState('airHit', { airReset: false, inKD: true, ko: false });
@@ -442,7 +470,7 @@ export class Battle {
       d.vy = T.launch[1];
       d.y = Math.max(0.01, d.y);
       d.hitstop = T.hitstop || 6; a.hitstop = T.hitstop || 6;
-      if (T.shake) this.fx.shake(T.shake);
+      if (T.shake) this.fx.shake(T.shake, 'y');
       if (T.dust) this.fx.dust(d.x, 1.6);
     }
   }
@@ -510,7 +538,7 @@ export class Battle {
 
   bounds() {
     const lo = Math.max(LAYOUT.edge, this.camX + LAYOUT.edge);
-    const hi = Math.min(LAYOUT.stageW - LAYOUT.edge, this.camX + VIEW_W - LAYOUT.edge);
+    const hi = Math.min(LAYOUT.stageW - LAYOUT.edge, this.camX + this.viewW - LAYOUT.edge);
     return [lo, hi];
   }
 
@@ -535,7 +563,7 @@ export class Battle {
   updateCamera(snap) {
     const [a, b] = this.fighters;
     const mid = (a.x + b.x) / 2;
-    const target = Math.max(0, Math.min(LAYOUT.stageW - VIEW_W, mid - VIEW_W / 2));
+    const target = Math.max(0, Math.min(LAYOUT.stageW - this.viewW, mid - this.viewW / 2));
     if (snap || this.camX === undefined) { this.camX = target; this.pcamX = target; }
     else this.camX += (target - this.camX) * 0.5;
   }

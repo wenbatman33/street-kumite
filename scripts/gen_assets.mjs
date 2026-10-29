@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 透過 codex exec 內建 image_gen 批次生成角色 sprite 原圖（不需 OPENAI_API_KEY）
-// 用法：node scripts/gen_assets.mjs [--jobs 4] [--only tora/idle,vera/ref,stage/market] [--force]
+// 用法：node scripts/gen_assets.mjs [--jobs 2] [--only tora/idle,vera/ref,stage/market] [--force] [--model gpt-6.1-sol]
 // 已存在的檔案會跳過，可中斷續跑。角色的 strip / portrait 會等 ref 設定圖完成後才排入，並附上 ref 當參考圖。
 // 全部跑完後執行 python3 scripts/process_sprites.py
 import { spawn } from 'node:child_process';
@@ -22,6 +22,8 @@ const arg = (name, def) => {
 const jobs = Number(arg('--jobs', 4));
 const only = arg('--only', '').split(',').filter(Boolean);
 const force = process.argv.includes('--force');
+// ChatGPT 帳號登入的 codex 已不支援 gpt-5.5，預設改用 gpt-6.1-sol（可用 --model 或環境變數 CODEX_MODEL 覆寫）
+const model = arg('--model', process.env.CODEX_MODEL || 'gpt-6.1-sol');
 
 // 動作名稱（給 image_gen 的英文標題）
 const ACTION = {
@@ -85,6 +87,14 @@ ${frames}` });
   for (const [sid, desc] of Object.entries(M.stages)) {
     items.push({ id: `stage/${sid}`, out: resolve(rawDir, 'stages', `${sid}.png`), size: '1536x1024', deps: [], body: desc });
   }
+  // 舞台前景物件（角色前方、捲動比角色快）
+  for (const [pid, pr] of Object.entries(M.props || {})) {
+    items.push({ id: `prop/${pid}`, out: resolve(rawDir, 'props', `${pid}.png`), size: pr.size, deps: [], body: pr.prompt });
+  }
+  // 其他單張素材（世界地圖等）
+  for (const [eid, e] of Object.entries(M.extra || {})) {
+    items.push({ id: `extra/${eid}`, out: resolve(rawDir, e.out), size: e.size, deps: [], body: e.prompt });
+  }
   return items;
 }
 
@@ -111,7 +121,7 @@ function run(item) {
   const text = instruction(item);
   const logFile = resolve(logDir, item.id.replace(/\//g, '__') + '.log');
   writeFileSync(logFile, text + '\n\n=== codex output ===\n');
-  const args = ['exec', '--skip-git-repo-check', '--sandbox', 'workspace-write', '-C', root, text];
+  const args = ['exec', '--skip-git-repo-check', '-m', model, '--sandbox', 'workspace-write', '-C', root, text];
   for (const d of item.deps) args.push('-i', d);
   return new Promise((ok) => {
     const t0 = Date.now();

@@ -7,10 +7,17 @@ import kagero from './kagero.js';
 import shen from './shen.js';
 import drake from './drake.js';
 import kanya from './kanya.js';
+import atlas from './atlas.js';
+import seth from './seth.js';
+import volkan from './volkan.js';
+import tesshin from './tesshin.js';
 import { MASS_FRAMES, THROW_FWD, THROW_BACK } from './common.js';
 
-export const CHARS = { tora, vera, baatar, skye, kagero, shen, drake, kanya };
+export const CHARS = { tora, vera, baatar, skye, kagero, shen, drake, kanya, atlas, seth, volkan, tesshin };
 export const CHAR_IDS = Object.keys(CHARS);
+// 可選角色與拳帖四天王（四天王只在街機模式最後出場，依序挑戰）
+export const PLAYABLE_IDS = CHAR_IDS.filter((id) => !CHARS[id].boss);
+export const BOSS_IDS = ['atlas', 'seth', 'volkan', 'tesshin'];
 
 // 空中翻轉、橫躺類影格改用重心錨點
 vera.massFrames = { sp2: [3, 4, 5, 6] };
@@ -55,6 +62,8 @@ for (const c of Object.values(CHARS)) {
       }
     }
     refreshMove(m);
+    // 會位移的必殺技／超必殺帶殘影
+    if (m.trail === undefined && (m.type === 'special' || m.type === 'super') && (m.jump || m.vel)) m.trail = true;
     // 角色整體傷害倍率（平衡用）
     if (c.dmgMul) {
       const mul = (h) => { if (h && h.dmg) h.dmg = Math.round(h.dmg * c.dmgMul); };

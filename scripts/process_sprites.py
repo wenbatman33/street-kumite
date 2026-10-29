@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """角色 sprite 後處理：洋紅去背 → 連通區塊切格 → 腳底/重心錨點 → 依站姿參考格統一縮放 → 打包 atlas
 
-用法：python3 scripts/process_sprites.py [--only tora,vera,stages,fx] [--review]
+用法：python3 scripts/process_sprites.py [--only tora,vera,stages,fx,hurt] [--review]
 只依賴 Pillow。輸出：
   assets/sprites/<角色>/atlas.json + <角色>_<n>.webp   遊戲用 atlas
   assets/ui/portrait_<角色>.webp                        頭像
+  assets/ui/portrait_<角色>_hurt.webp                   落敗頭像
   assets/stages/<舞台>.webp                             舞台背景
   assets_src/review/<角色>/<動作>.png                  檢查用接觸表（錨點、身高線）
   assets_src/review/report.json                         每張 strip 的檢驗結果
@@ -481,8 +482,8 @@ def process_character(cid, report):
     print(f'[atlas] {cid}: {len(entries)} 格、{len(pages)} 頁 → {outdir}')
 
 
-def process_portrait(cid, report):
-    p = RAW / cid / 'portrait.png'
+def process_portrait(cid, report, name='portrait', out=None):
+    p = RAW / cid / f'{name}.png'
     if not p.exists():
         return
     rgba, _ = remove_key(Image.open(p))
@@ -495,9 +496,10 @@ def process_portrait(cid, report):
     im = r[0]
     im.thumbnail((512, 512), Image.LANCZOS)
     OUT_UI.mkdir(parents=True, exist_ok=True)
-    im.save(OUT_UI / f'portrait_{cid}.webp', 'WEBP', quality=90, method=6)
-    report[f'{cid}/portrait'] = {'pass': True, 'size': im.size}
-    print(f'[portrait] {cid} {im.size}')
+    out = out or f'portrait_{cid}.webp'
+    im.save(OUT_UI / out, 'WEBP', quality=90, method=6)
+    report[f'{cid}/{name}'] = {'pass': True, 'size': im.size}
+    print(f'[{name}] {cid} {im.size}')
 
 
 def process_stages(report):
@@ -526,6 +528,33 @@ def main():
         process_portrait(cid, report)
     if not only or 'stages' in only:
         process_stages(report)
+    # 舞台前景物件：洋紅去背、取最大連通區塊、長邊縮到 768
+    if not only or 'props' in only:
+        for pid in M.get('props', {}):
+            src = RAW / 'props' / f'{pid}.png'
+            if not src.exists():
+                continue
+            rgba, _ = remove_key(Image.open(src))
+            bbox = rgba.getchannel('A').point(lambda v: 255 if v > 16 else 0).getbbox()
+            if not bbox:
+                continue
+            im = rgba.crop(bbox)
+            im.thumbnail((768, 768), Image.LANCZOS)
+            (ROOT / 'assets/stages/fg').mkdir(parents=True, exist_ok=True)
+            im.save(ROOT / 'assets/stages/fg' / f'{pid}.webp', 'WEBP', quality=88, method=6)
+            report[f'prop/{pid}'] = {'pass': True, 'size': im.size}
+            print(f'[prop] {pid} {im.size}')
+    # 世界地圖
+    if not only or 'extra' in only:
+        src = RAW / 'ui' / 'worldmap.png'
+        if src.exists():
+            im = Image.open(src).convert('RGB')
+            im.save(OUT_UI / 'worldmap.webp', 'WEBP', quality=88, method=6)
+            print(f'[extra] worldmap {im.size}')
+    # 落敗頭像（scripts/gen_hurt_portraits.mjs 產生）
+    if not only or 'hurt' in only:
+        for cid in M['characters']:
+            process_portrait(cid, report, 'portrait_hurt', f'portrait_{cid}_hurt.webp')
     REVIEW.mkdir(parents=True, exist_ok=True)
     rp.write_text(json.dumps(report, ensure_ascii=False, indent=1))
     bad = {k: v for k, v in report.items() if not v.get('pass')}

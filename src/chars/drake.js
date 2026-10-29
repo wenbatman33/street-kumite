@@ -1,5 +1,5 @@
 // DRAKE 德雷克：重量級拳擊（霸體衝拳、衝刺上勾拳、連續勾拳）
-import { baseNormals, STR } from './common.js';
+import { baseNormals, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -51,6 +51,8 @@ const drake = {
     '5HP': { hits: [{ dmg: 110 }] },
     '5LK': { hits: [{ box: [20, 100, 125, 60] }] },
     '5HK': { hits: [{ dmg: 110 }] },
+    // 飛身重砲：空中蓄力一拳砸下
+    'jHP': airSig('sp1', [2, 3], [4], 8, 7, { dmg: 110 }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 120,

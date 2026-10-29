@@ -1,5 +1,5 @@
 // TORA 虎牙：均衡型空手道家（飛行道具、昇龍型對空、中段下劈）
-import { baseNormals, timeline, STR } from './common.js';
+import { baseNormals, timeline, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -51,6 +51,8 @@ const tora = {
   walkF: 3.6, walkB: 2.9, jumpVy: 18.5, jumpVx: 4.4,
   normals: baseNormals({
     '5HP': { hits: [{ dmg: 105 }] },
+    // 空中虎落踵：抬腿 → 帶火焰往下劈
+    'jHK': airSig('sp3', [2, 3], [4], 8, 7, { dmg: 108, stun: 160 }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 118,

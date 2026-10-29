@@ -10,6 +10,8 @@ import { CHARS, refreshMove } from './chars/index.js';
 import { view } from './render.js';
 import { ASSETS } from './assets.js';
 import { audio, MIX, SONG_NAMES } from './audio.js';
+import { clearPixelCaches } from './pixel.js';
+import { STAGE_FX, StageFX } from './stagefx.js';
 
 const LS_KEY = 'streetkumite-dev-overrides';
 // 覆寫檔版本：預設值有改動時加一，舊版覆寫檔載入時略過被改過的項目，新預設才會生效
@@ -103,11 +105,52 @@ export class DevTools {
     st.add(T, 'combo').name('顯示連段數');
     st.add(T, 'reset').name('重設位置');
 
+    // 跳到各畫面（調整非戰鬥畫面的版面用）
+    const go = gui.addFolder('🎬 跳到畫面');
+    go.close();
+    const J = { char: 'tora', opp: 'shen' };
+    const scene = async (fn) => { const m = await import('./scenes.js'); this.app.go(fn(m)); };
+    const ladder = () => { const L = Object.keys(CHARS).filter((id) => id !== J.char && id !== J.opp); L.push(J.opp); return L; };
+    const setup = (n) => ({ mode: 'arcade', ladder: ladder(), stageNo: n, chars: [J.char, J.opp], stage: HOME_STAGE[J.opp] });
+    go.add(J, 'char', Object.keys(CHARS)).name('自己');
+    go.add(J, 'opp', Object.keys(CHARS)).name('對手');
+    const S = {
+      title: () => scene((m) => new m.TitleScene(this.app)),
+      profile: () => scene((m) => new m.ProfileScene(this.app, new m.MenuScene(this.app))),
+      prologue: () => scene((m) => new m.SelectScene(this.app, 'ladder')),
+      vs: () => scene((m) => new m.VSScene(this.app, setup(0))),
+      vsRival: () => scene((m) => new m.VSScene(this.app, setup(Object.keys(CHARS).length - 2))),
+      win: () => scene((m) => new m.ResultScene(this.app, setup(0), 0)),
+      lose: () => scene((m) => new m.ResultScene(this.app, setup(0), 1)),
+      cont: () => scene((m) => new m.ContinueScene(this.app, setup(0))),
+      ending: () => scene((m) => m.endingScene(this.app, setup(6))),
+      credits: () => scene((m) => new m.CreditsScene(this.app, J.char)),
+      demo: () => scene((m) => new m.BattleScene(this.app, { mode: 'demo', chars: [J.char, J.opp], stage: HOME_STAGE[J.opp] })),
+    };
+    go.add(S, 'title').name('標題');
+    go.add(S, 'profile').name('格鬥家檔案');
+    go.add(S, 'prologue').name('選角（街機）');
+    go.add(S, 'vs').name('VS 一般');
+    go.add(S, 'vsRival').name('VS 宿敵戰');
+    go.add(S, 'win').name('結算：勝利台詞');
+    go.add(S, 'lose').name('結算：落敗');
+    go.add(S, 'cont').name('CONTINUE 倒數');
+    go.add(S, 'ending').name('角色結局');
+    go.add(S, 'credits').name('製作名單');
+    go.add(S, 'demo').name('Demo 對戰');
+
     // 版面
     const lay = gui.addFolder('📐 版面 HUD（可直接拖曳）');
     lay.close();
     for (const [k, o] of Object.entries(LAYOUT.hud)) {
       const f = lay.addFolder(k);
+      f.close();
+      for (const p of Object.keys(o)) f.add(o, p, ...rangeFor(p)).listen().onChange(() => this.save());
+    }
+    const scr = lay.addFolder('🖼 各畫面（標題／選角／VS／劇情／結算）');
+    scr.close();
+    for (const [k, o] of Object.entries(LAYOUT.screens)) {
+      const f = scr.addFolder(k);
       f.close();
       for (const p of Object.keys(o)) f.add(o, p, ...rangeFor(p)).listen().onChange(() => this.save());
     }
@@ -126,6 +169,12 @@ export class DevTools {
     stg.add(LAYOUT, 'stageW', 1300, 3000, 10).name('舞台寬').onChange(() => this.save());
     stg.add(LAYOUT, 'edge', 0, 120, 1).name('畫面邊距').onChange(() => this.save());
     stg.add(LAYOUT, 'startGap', 150, 800, 1).name('開場距離').onChange(() => this.save());
+    stg.add(LAYOUT, 'camZoom', 1, 1.6, 0.01).name('鏡頭拉近倍率').onChange(() => this.save());
+    const mp = stg.addFolder('世界地圖位置');
+    mp.close();
+    mp.add(LAYOUT.map, 'x', -400, 400, 1).onChange(() => this.save());
+    mp.add(LAYOUT.map, 'y', -400, 200, 1).onChange(() => this.save());
+    mp.add(LAYOUT.map, 'w', 600, 2000, 1).name('寬').onChange(() => this.save());
     const sh = stg.addFolder('影子');
     sh.close();
     const SH = LAYOUT.shadow;
@@ -145,7 +194,49 @@ export class DevTools {
       if (!s.light) s.light = [LAYOUT.shadow.squash, LAYOUT.shadow.skew];
       f.add(s.light, 0, -0.5, 0.5, 0.01).name('影子壓扁（負=逆光）').onChange(() => this.save());
       f.add(s.light, 1, -1.5, 1.5, 0.01).name('影子斜度').onChange(() => this.save());
+      if (s.floor !== undefined) f.add(s, 'floor', 0.3, 1, 0.005).name('地板起點（圖高比例）').onChange(() => this.save());
+      if (s.dust) f.addColor(s, 'dust').name('揚塵顏色').onChange(() => this.save());
+      (s.fg || []).forEach((fg, i) => {
+        const ff = f.addFolder(`前景 ${i + 1}：${fg.id}`);
+        ff.close();
+        ff.add(fg, 'x', -200, 2100, 1).name('舞台位置').onChange(() => this.save());
+        ff.add(fg, 'h', 40, 700, 1).name('高度').onChange(() => this.save());
+        ff.add(fg, 'p', 0.5, 2.5, 0.01).name('捲動倍率').onChange(() => this.save());
+        ff.add(fg, 'dy', -300, 300, 1).name('上下位移').onChange(() => this.save());
+        ff.add(fg, 'at', ['top', 'bottom']).name('貼齊').onChange(() => this.save());
+      });
       void id;
+    }
+
+    // 像素畫風
+    const px = gui.addFolder('🟦 像素畫風');
+    px.close();
+    const PXL = LAYOUT.pixel;
+    const repix = () => { clearPixelCaches(); this.save(); };
+    px.add(PXL, 'size', 1, 4, 1).name('舞台像素倍率（1 = 關閉）').onChange(repix);
+    px.add(PXL, 'charSize', 1, 4, 1).name('角色像素倍率（1 = 高解析）').onChange(repix);
+    px.add(PXL, 'artSize', 1, 4, 1).name('頭像像素倍率').onChange(repix);
+    px.add(PXL, 'sharpen', 0, 2, 0.05).name('銳化（保留細節）').onChange(repix);
+    px.add(PXL, 'stageColors', 8, 128, 1).name('舞台色數').onChange(repix);
+    px.add(PXL, 'charColors', 8, 128, 1).name('角色色數').onChange(repix);
+    px.add(PXL, 'artColors', 8, 128, 1).name('頭像色數').onChange(repix);
+    px.add(PXL, 'dither', 0, 24, 0.5).name('抖色強度').onChange(repix);
+    px.add(PXL, 'sat', 0.5, 1.6, 0.01).name('彩度').onChange(repix);
+    px.add(PXL, 'contrast', 0.6, 1.5, 0.01).name('對比').onChange(repix);
+    px.add(PXL, 'floorScroll').name('地板透視捲動').onChange(() => this.save());
+
+    // 舞台動態元素（天氣、觀眾）
+    const sfx = gui.addFolder('🌏 舞台動態元素');
+    sfx.close();
+    const rebuild = () => { const b = this.battle(); if (b) b.stagefx = new StageFX(b.stage); this.save(); };
+    sfx.add({ cheer: () => this.withBattle((b) => b.stagefx.cheer(1)) }, 'cheer').name('觸發觀眾歡呼（K.O. 反應）');
+    for (const [id, D] of Object.entries(STAGE_FX)) {
+      const f = sfx.addFolder(STAGES[id] ? STAGES[id].nameZh : id);
+      f.close();
+      for (const [k, v] of Object.entries(D)) {
+        if (typeof v !== 'number') continue;
+        f.add(D, k, 0, k === 'on' || k === 'flash' || k === 'eagle' || k === 'cloud' || k === 'aurora' || k === 'mist' || k === 'haze' || k === 'confetti' ? 1 : 200, k === 'flash' ? 0.05 : 1).name(FX_NAME[k] || k).onChange(rebuild);
+      }
     }
 
     // 配樂：試聽、速度、各聲部音量
@@ -168,9 +259,12 @@ export class DevTools {
     // 物理與打擊感
     const ph = gui.addFolder('⚙ 物理 / 打擊感');
     ph.close();
-    for (const k of Object.keys(PHYS)) ph.add(PHYS, k, 0, k === 'gravity' || k === 'pushDecay' ? 2 : 200, k === 'gravity' || k === 'pushDecay' || k === 'stunDecay' ? 0.01 : 1).onChange(() => this.save());
+    const fine = new Set(['gravity', 'pushDecay', 'fallMul', 'jumpMul']);
+    for (const k of Object.keys(PHYS)) ph.add(PHYS, k, 0, fine.has(k) ? 2 : 200, fine.has(k) || k === 'stunDecay' ? 0.01 : 1).onChange(() => this.save());
     for (const k of Object.keys(FX.hitstop)) ph.add(FX.hitstop, k, 0, 40, 1).name(`頓幀 ${k}`).onChange(() => this.save());
     for (const k of Object.keys(FX.shake)) ph.add(FX.shake, k, 0, 30, 1).name(`震動 ${k}`).onChange(() => this.save());
+    for (const k of Object.keys(FX.hitShake)) ph.add(FX.hitShake, k, 0, 20, 1).name(`受擊抖動 ${k}`).onChange(() => this.save());
+    for (const k of Object.keys(FX.zoom)) ph.add(FX.zoom, k, 0, 0.3, 0.005).name(`鏡頭衝擊 ${k}`).onChange(() => this.save());
     ph.add(FX, 'sparkScale', 0.3, 3, 0.05).name('火花大小').onChange(() => this.save());
     ph.add(FX, 'superFlash', 0, 120, 1).name('超必殺暗場').onChange(() => this.save());
     ph.add(FX, 'koSlow', 1, 8, 1).name('KO 慢動作').onChange(() => this.save());
@@ -403,8 +497,8 @@ export class DevTools {
       chars[id] = { hp: c.hp, walkF: c.walkF, walkB: c.walkB, jumpVy: c.jumpVy, jumpVx: c.jumpVx, spriteAdj: adj, moves };
     }
     const stages = {};
-    for (const [id, s] of Object.entries(STAGES)) stages[id] = { scale: s.scale, y: s.y, parallax: s.parallax, light: s.light };
-    return { version: OVERRIDE_VERSION, LAYOUT, STAGES: stages, PHYS, FX, MIX, chars };
+    for (const [id, s] of Object.entries(STAGES)) stages[id] = { scale: s.scale, y: s.y, parallax: s.parallax, light: s.light, floor: s.floor, dust: s.dust, fg: s.fg };
+    return { version: OVERRIDE_VERSION, LAYOUT, STAGES: stages, STAGE_FX, PHYS, FX, MIX, chars };
   }
 
   save() {
@@ -431,7 +525,14 @@ export class DevTools {
   }
 }
 
+const HOME_STAGE = { tora: 'market', vera: 'beach', baatar: 'steppe', skye: 'harbor', kagero: 'rooftop', shen: 'temple', drake: 'gym', kanya: 'stadium' };
+const FX_NAME = { on: '開啟', rain: '雨滴數', snow: '雪花數', petals: '櫻花瓣數', seeds: '草籽數', leaves: '落葉數', gulls: '海鷗數', eagle: '老鷹', cloud: '雲影', aurora: '極光', mist: '山嵐', haze: '煙霧', flash: '閃光燈頻率', confetti: 'K.O. 彩紙', lanterns3: '天燈數' };
+
 function rangeFor(p) {
+  if (/S$/.test(p) && p !== 'size') return [0.2, 2.5, 0.01];   // logoS 等縮放倍率
+  if (p === 'textSize') return [10, 60, 1];
+  if (/[XW]$/.test(p)) return [-200, VIEW_W, 1];               // portraitX、boxW…
+  if (/H$/.test(p)) return [100, 1000, 1];                      // portraitH、boxH
   if (p === 'size' || p === 'r') return [4, 200, 1];
   if (p === 'skew') return [-60, 60, 1];
   if (p === 'rows') return [1, 40, 1];
@@ -460,6 +561,7 @@ export function applyOverrides(o) {
   if (o.FX) deepAssign(FX, o.FX);
   if (o.MIX) for (const [k, v] of Object.entries(o.MIX)) if (k in MIX) audio.setMix(k, v);
   if (o.STAGES) for (const [id, s] of Object.entries(o.STAGES)) if (STAGES[id]) Object.assign(STAGES[id], s);
+  if (o.STAGE_FX) for (const [id, s] of Object.entries(o.STAGE_FX)) if (STAGE_FX[id]) Object.assign(STAGE_FX[id], s);
   if (o.chars) {
     for (const [id, c] of Object.entries(o.chars)) {
       const d = CHARS[id];

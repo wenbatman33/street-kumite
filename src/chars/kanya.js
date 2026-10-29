@@ -1,5 +1,5 @@
 // KANYA 甘雅：泰拳膝肘型（飛膝、衝天膝對空、連環肘擊）
-import { baseNormals, STR } from './common.js';
+import { baseNormals, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -47,6 +47,8 @@ const kanya = {
     '5LK': { hits: [{ push: 9 }] },
     '5HK': { hits: [{ dmg: 105 }] },
     '2MK': { hits: [{ dmg: 65 }] },
+    // 空中飛膝：提膝撞向對手
+    'jHK': airSig('sp1', [2], [3, 4], 7, 8, { dmg: 105, react: 'body' }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 118,

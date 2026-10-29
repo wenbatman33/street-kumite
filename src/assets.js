@@ -1,7 +1,7 @@
 // 素材載入：角色 atlas、頭像、舞台背景。缺檔時回傳 null，遊戲改用程式繪製的替代圖
 import { STAGES } from './config.js';
 
-export const ASSETS = { chars: {}, portraits: {}, stages: {}, alt: {} };
+export const ASSETS = { chars: {}, portraits: {}, hurt: {}, stages: {}, alt: {}, props: {}, worldmap: null };
 
 // 載入失敗自動重試（伺服器忙碌或網路不穩時）
 function loadImage(src, tries = 3) {
@@ -42,10 +42,15 @@ export async function loadAll(charIds, onProgress) {
   for (const id of charIds) {
     jobs.push(loadCharAtlas(id).then((a) => { ASSETS.chars[id] = a; tick(); }));
     jobs.push(loadImage(`assets/ui/portrait_${id}.webp`).then((im) => { ASSETS.portraits[id] = im; tick(); }));
+    // 落敗頭像（鼻青臉腫、嘴角流血）：沒有檔案時用一般頭像
+    loadImage(`assets/ui/portrait_${id}_hurt.webp`, 1).then((im) => { ASSETS.hurt[id] = im; });
   }
   for (const [sid, s] of Object.entries(STAGES)) {
     jobs.push(loadImage(s.img).then((im) => { ASSETS.stages[sid] = im; tick(); }));
+    // 前景物件（沒有檔案就不畫）
+    for (const f of s.fg || []) if (!(f.id in ASSETS.props)) { ASSETS.props[f.id] = null; loadImage(`assets/stages/fg/${f.id}.webp`, 1).then((im) => { ASSETS.props[f.id] = im; }); }
   }
+  loadImage('assets/ui/worldmap.webp', 1).then((im) => { ASSETS.worldmap = im; });
   await Promise.all(jobs);
 }
 

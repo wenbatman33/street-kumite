@@ -1,5 +1,5 @@
 // VERA 薇拉：卡波耶拉速攻型（突進踢、後空翻對空、倒立旋風連段）
-import { baseNormals, timeline, STR } from './common.js';
+import { baseNormals, timeline, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -57,6 +57,8 @@ const vera = {
     '5HP': { hits: [{ dmg: 95 }] },
     '5HK': { hits: [{ dmg: 100, box: [20, 190, 185, 70] }] },
     '2MK': { hits: [{ box: [20, 0, 180, 40] }] },
+    // 空中疾風腳：側身飛踢帶綠色旋風
+    'jHK': airSig('sp1', [2], [3, 4], 7, 8, { dmg: 100 }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 118,

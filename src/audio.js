@@ -71,6 +71,8 @@ const SFX = {
     tone(t, 0.5, { f0: 95, f1: 26, gain: 0.95 });
     noise(t + 0.03, 0.55, { freq: 2600, sweep: 260, q: 0.5, gain: 0.32 });
   },
+  // 跳入命中：重擊再加一層低頻悶響（從上往下砸的重量感）
+  hitJ: (t) => { SFX.hitH(t); tone(t + 0.01, 0.22, { f0: 110, f1: 45, gain: 0.7 }); noise(t, 0.05, { freq: 2400, q: 0.6, gain: 0.3 }); },
   powerH: (t) => { noise(t, 0.26, { freq: 380, sweep: 2800, q: 3, gain: 0.26 }); tone(t, 0.22, { f0: 170, f1: 520, type: 'sawtooth', gain: 0.07 }); },
   block: (t) => { noise(t, 0.06, { freq: 4200, q: 3, gain: 0.35 }); tone(t, 0.05, { f0: 900, f1: 500, type: 'square', gain: 0.08 }); },
   grab: (t) => { noise(t, 0.08, { freq: 900, q: 2, gain: 0.32 }); tone(t, 0.06, { f0: 300, f1: 160, gain: 0.3 }); },
@@ -246,6 +248,10 @@ const INST = {
   },
   // 擦弦（二胡／馬頭琴）：鋸齒 + 慢起音 + 大抖音 + 滑音
   fiddle: (t, d, n, o) => sub(CH.lead, t, d, n, { wave: 'sawtooth', voices: [-5, 5], cutoff: 2300, cutStart: 900, cutT: 0.12, q: 1.6, a: 0.07, d: 0.4, s: 0.85, r: 0.18, gain: 0.26, vib: 30, glide: o.glide }),
+  // 簧管（泰拳樂的 pi、嗩吶感）：方波 + 高 Q 鼻音 + 大抖音
+  reed: (t, d, n, o) => sub(CH.lead, t, d, n, { wave: 'square', voices: [-4, 4], cutoff: 2800, cutStart: 4200, cutT: 0.05, q: 5, a: 0.015, d: 0.2, s: 0.85, r: 0.08, gain: 0.22, vib: 38, glide: o.glide }),
+  // 破音吉他獨奏
+  lead: (t, d, n, o) => sub(CH.lead, t, d, n, { wave: 'sawtooth', voices: [-8, 8], cutoff: 3200, q: 1.2, a: 0.006, d: 0.3, s: 0.8, r: 0.1, gain: 0.17, vib: 28, glide: o.glide, shaper: dist() }),
   // 琶音鐘聲
   bell: (t, d, n) => fm(CH.arp, t, Math.min(d, 0.3), n, { ratio: 3.5, index: 1.8, idxEnd: 0.2, idxT: 0.3, a: 0.002, d: 0.4, s: 0, r: 0.4, gain: 0.22 }),
   // 琶音撥弦（較暗）
@@ -286,13 +292,28 @@ function tom(t, n, v = 1) { tone(t, 0.3, { f0: midi(n), f1: midi(n) * 0.62, gain
 function taiko(t, v = 1) { tone(t, 0.55, { f0: 95, f1: 55, gain: 0.95 * v, bus: CH.perc }); noise(t, 0.08, { freq: 500, type: 'lowpass', gain: 0.35 * v, bus: CH.perc }); }
 function crash(t) { noise(t, 1.5, { freq: 4500, type: 'highpass', gain: 0.32, bus: CH.hat }); noise(t, 0.6, { freq: 7000, q: 0.5, gain: 0.15, bus: CH.hat }); }
 function shaker(t, v = 1) { noise(t, 0.05, { freq: 6000, q: 1.5, gain: 0.16 * v, bus: CH.perc }); }
+// 泰拳樂的小鈸（鏘）
+function ching(t, v = 1) {
+  noise(t, 0.08, { freq: 7800, q: 6, gain: 0.22 * v, bus: CH.hat });
+  tone(t, 0.14, { f0: 2650, f1: 2600, type: 'sine', gain: 0.07 * v, bus: CH.hat });
+}
+// 拳擊場鐘聲（叮叮叮）
+function ring(t) {
+  for (let i = 0; i < 3; i++) {
+    tone(t + i * 0.13, 0.7, { f0: 1900, f1: 1880, type: 'triangle', gain: 0.22, bus: CH.perc });
+    tone(t + i * 0.13, 0.5, { f0: 4750, f1: 4700, type: 'sine', gain: 0.06, bus: CH.perc });
+  }
+}
 function gong(t) {
   for (const [r, gn] of [[1, 0.35], [1.48, 0.18], [2.13, 0.12], [2.9, 0.08]]) tone(t, 3.2, { f0: 98 * r, f1: 96 * r, gain: gn, bus: CH.perc });
   noise(t, 0.4, { freq: 300, type: 'lowpass', gain: 0.25, bus: CH.perc });
 }
 
-// 16 格節奏（x = 打、o = 開放鈸／重音、. = 空）。k 大鼓、s 小鼓、h 鈸、c 拍手、t 中鼓、w 太鼓、z 沙鈴
+// 16 格節奏（x = 打、o = 開放鈸／重音、. = 空）。k 大鼓、s 小鼓、h 鈸、c 拍手、t 中鼓、w 太鼓、z 沙鈴、g 泰國小鈸
 const DRUMS = {
+  metal: { k: 'x.x.x.x.x.x.x.x.', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+  sambaRock: { k: 'x..x..x.x..x..x.', s: '....x.......x...', c: '..........x.....', z: 'xxxxxxxxxxxxxxxx', t: '..x...x...x..x.x' },
+  muaythai: { k: 'x...x...x...x...', s: '....x.......x...', g: '..x...x...x...x.', t: '...x..x....x..x.' },
   half: { k: 'x.........x.....', s: '........x.......', h: 'x...x...x...x...' },
   rock: { k: 'x.......x.x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
   drive: { k: 'x.....x.x.....x.', s: '....x.......x...', h: 'xxxxxxxxxxxxxxxx' },
@@ -333,6 +354,7 @@ const STABS = {
 };
 // 破音吉他強力和弦（x 長、m 悶音短打）
 const GTR = {
+  hits: 'x.....x.....x...',
   chug: 'mmmxmmmxmmmxmmxm',
   power: 'x.....x.x.......',
 };
@@ -373,102 +395,216 @@ function melody(str) {
 // =====================================================================
 // 曲目（全部原創）。每段：bars 小節數、chords 每小節一個和弦、drums/bass 節奏型、
 // lead 旋律 + inst 樂器、arp 琶音、stab 銅管短打、gtr 吉他、pad 弦樂墊底、crash 段落開頭鈸
+// 戰鬥曲一律 156～174 BPM、破音吉他 + 八分音符貝斯打底，民族風味放在主奏樂器與打擊樂
+// 索引：0～7 對應各國舞台（config.js 的 bgm），8 = 選角／結局，9～12 = 四天王（希臘、埃及、冰島、最終戰）
 // =====================================================================
 const SONGS_SRC = [
   {
-    name: 'Neon Night Market（霓虹夜市）', bpm: 148, delay: 3, order: ['I', 'A', 'B', 'A', 'C'], loop: 1,
+    name: 'Neon Night Market（台北・霓虹夜市）', bpm: 158, delay: 3, order: ['I', 'A', 'B', 'A', 'B', 'C'], loop: 1,
     sec: {
-      I: { bars: 2, chords: 'Am G', drums: 'half', bass: 'pedal', arp: 'up16', arpInst: 'bell', pad: true },
+      I: { bars: 2, chords: 'Am Am', drums: 'drive', bass: 'drive', gtr: 'hits', arp: 'up16', arpInst: 'bell', crash: true },
       A: {
-        bars: 8, chords: 'Am F G Em Am F G E', drums: 'drive', bass: 'octave', stab: 'push', pad: true, crash: true, inst: 'brass',
+        bars: 8, chords: 'Am F G Em Am F G E', drums: 'drive', bass: 'octave', gtr: 'chug', stab: 'push', crash: true, inst: 'brass',
         lead: `E5:3 E5:1 D5:2 E5:2 A5:4 G5:2 E5:2 | F5:3 E5:1 D5:2 C5:2 D5:4 -:4 | D5:3 D5:1 C5:2 D5:2 G5:4 F5:2 D5:2 | E5:8 B4:4 -:4 |
                E5:3 E5:1 D5:2 E5:2 A5:4 B5:2 C6:2 | C6:3 B5:1 A5:2 G5:2 A5:4 F5:4 | G5:3 F5:1 E5:2 D5:2 E5:2 F5:2 G5:2 B5:2 | G#5:8 -:4 E5:2 G#5:2`,
       },
       B: {
-        bars: 8, chords: 'Dm G C Am Dm G E E', drums: 'four', bass: 'funk', arp: 'up8', arpInst: 'bell', stab: 'off', pad: true, crash: true, inst: 'brass',
-        lead: `A5:2 A5:2 -:2 F5:2 A5:2 C6:4 A5:2 | B5:4 G5:2 D5:2 G5:8 | G5:2 G5:2 -:2 E5:2 G5:2 C6:4 B5:2 | C6:4 A5:4 E5:8 |
-               F5:2 F5:2 -:2 E5:2 F5:2 A5:4 D6:2 | D6:4 C6:2 B5:2 G5:4 B5:4 | B5:4 G#5:4 E5:4 D6:4 | C6:2 B5:2 A5:2 G#5:2 B5:8`,
+        bars: 8, chords: 'F G Am Am F G E E', drums: 'metal', bass: 'drive', gtr: 'power', arp: 'up8', arpInst: 'bell', pad: true, crash: true, inst: 'brass',
+        lead: `A5:4 C6:4 F6:6 E6:2 | D6:4 B5:4 G5:4 D6:4 | E6:6 D6:2 C6:4 B5:4 | A5:12 E5:4 |
+               A5:2 C6:2 F6:4 E6:2 F6:2 A6:4 | G6:4 F6:2 E6:2 D6:4 B5:4 | E6:4 G#6:4 B6:4 G#6:4 | E6:12 -:4`,
       },
-      C: { bars: 4, chords: 'Am F G E', drums: 'half', bass: 'half', arp: 'up16', arpInst: 'bell', pad: true, crash: true },
+      C: { bars: 4, chords: 'Am F G E', drums: 'half', bass: 'half', gtr: 'hits', arp: 'up16', arpInst: 'bell', pad: true, crash: true },
     },
   },
   {
-    name: 'Sunset Roda（夕陽廣場）', bpm: 128, swing: 0.1, delay: 3, order: ['I', 'A', 'B', 'A'], loop: 1,
+    name: 'Rio Batucada（巴西・森巴狂熱）', bpm: 168, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
     sec: {
-      I: { bars: 2, chords: 'D C', drums: 'samba', bass: 'pedal', stab: 'bossa' },
+      I: { bars: 2, chords: 'Em Em', drums: 'sambaRock', bass: 'pedal', gtr: 'hits', crash: true },
       A: {
-        bars: 8, chords: 'D C G D D C G A', drums: 'samba', bass: 'samba', stab: 'bossa', crash: true, inst: 'square',
-        lead: `F#5:2 A5:2 -:1 F#5:1 A5:2 B5:2 A5:2 F#5:4 | G5:2 E5:2 -:1 C5:1 E5:2 G5:4 E5:4 | D5:2 G5:2 -:1 B5:1 D6:2 B5:2 A5:2 G5:4 | A5:6 F#5:2 D5:8 |
-               F#5:2 A5:2 -:1 F#5:1 A5:2 D6:4 C#6:2 B5:2 | C6:2 G5:2 -:1 E5:1 G5:2 C6:4 B5:2 A5:2 | B5:4 G5:2 B5:2 D6:4 B5:4 | A5:8 E5:4 C#5:4`,
+        bars: 8, chords: 'Em D C D Em D C B', drums: 'sambaRock', bass: 'samba', gtr: 'chug', stab: 'funk', crash: true, inst: 'square',
+        lead: `E5:2 G5:2 -:1 E5:1 G5:2 A5:2 B5:2 A5:4 | F#5:2 A5:2 -:1 F#5:1 A5:2 D6:4 A5:4 | G5:2 E5:2 -:1 C5:1 E5:2 G5:2 C6:2 B5:2 A5:2 | A5:6 F#5:2 D5:4 F#5:4 |
+               E5:2 G5:2 -:1 E5:1 G5:2 B5:2 E6:4 D6:2 | D6:2 A5:2 -:1 F#5:1 A5:2 D6:2 F#6:4 E6:2 | E6:4 C6:2 G5:2 C6:4 E6:4 | D#6:8 B5:4 F#5:4`,
       },
       B: {
-        bars: 8, chords: 'Bm G D A Bm G Em A', drums: 'samba', bass: 'samba', arp: 'up8', arpInst: 'harp', pad: true, crash: true, inst: 'brass',
-        lead: `D6:3 C#6:1 B5:4 F#5:4 B5:4 | G5:3 A5:1 B5:4 D6:8 | F#6:3 E6:1 D6:4 A5:8 | C#6:4 B5:2 A5:2 E5:8 |
-               D6:3 C#6:1 B5:4 F#5:4 B5:2 C#6:2 | D6:4 B5:4 G5:4 B5:4 | E6:3 D6:1 B5:4 G5:2 A5:2 B5:4 | A5:4 C#6:4 E6:8`,
+        bars: 8, chords: 'C D Em Em C D B B', drums: 'sambaRock', bass: 'octave', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
+        lead: `G5:4 C6:4 E6:6 D6:2 | D6:4 C6:2 B5:2 A5:8 | B5:6 A5:2 G5:4 E5:4 | E5:12 B5:4 |
+               E5:2 G5:2 C6:2 E6:2 D6:4 C6:4 | D6:2 F#6:2 D6:2 A5:2 D6:4 F#6:4 | F#6:4 E6:2 D#6:2 B5:4 D#6:4 | F#6:12 -:4`,
       },
     },
   },
   {
-    name: 'Great Steppe（草原祭典）', bpm: 132, delay: 3, order: ['I', 'A', 'B', 'A'], loop: 1,
+    name: 'Steppe Thunder（蒙古・草原雷鳴）', bpm: 162, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
     sec: {
-      I: { bars: 2, chords: 'Gm Gm', drums: 'taiko', bass: 'pedal', pad: true },
+      I: { bars: 2, chords: 'Gm Gm', drums: 'gallop', bass: 'gallop', gtr: 'hits', crash: true },
       A: {
-        bars: 8, chords: 'Gm Gm F Gm Eb F Gm Gm', drums: 'gallop', bass: 'gallop', pad: true, crash: true, inst: 'fiddle',
+        bars: 8, chords: 'Gm Gm F Gm Eb F Gm Gm', drums: 'gallop', bass: 'gallop', gtr: 'chug', crash: true, inst: 'fiddle',
         lead: `D5:4 F5:2 G5:2 F5:2 D5:2 C5:4 | Bb4:2 C5:2 D5:4 G4:8 | C5:4 D5:2 F5:2 G5:4 F5:4 | D5:12 -:4 |
                G5:4 Bb5:2 G5:2 F5:4 Eb5:4 | F5:4 G5:2 F5:2 D5:4 C5:4 | Bb4:4 C5:2 D5:2 F5:2 D5:2 C5:2 Bb4:2 | G4:12 -:4`,
       },
       B: {
-        bars: 8, chords: 'Cm Cm Bb F Eb F Gm D', drums: 'gallop', bass: 'gallop', stab: 'push', pad: true, crash: true, inst: 'brass',
+        bars: 8, chords: 'Cm Cm Bb F Eb F Gm D', drums: 'metal', bass: 'gallop', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
         lead: `G5:6 Eb5:2 G5:4 C6:4 | Bb5:4 G5:4 Eb5:8 | F5:6 D5:2 F5:4 Bb5:4 | A5:8 C6:4 A5:4 |
                G5:4 Bb5:4 Eb6:4 D6:4 | C6:4 A5:4 F5:4 C6:4 | D6:4 Bb5:4 G5:4 Bb5:4 | A5:4 F#5:4 D5:8`,
       },
     },
   },
   {
-    name: 'Frozen Harbor（極光港口）', bpm: 160, delay: 3, order: ['I', 'A', 'B', 'A'], loop: 1,
+    name: 'Aurora Assault（挪威・極光突擊）', bpm: 172, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
     sec: {
-      I: { bars: 2, chords: 'Bm Bm', drums: 'half', bass: 'drive', gtr: 'chug' },
+      I: { bars: 2, chords: 'Bm Bm', drums: 'metal', bass: 'drive', gtr: 'chug', crash: true },
       A: {
-        bars: 8, chords: 'Bm G A F#m Bm G A F#', drums: 'drive', bass: 'drive', gtr: 'chug', arp: 'up16', arpInst: 'bell', crash: true, inst: 'square',
+        bars: 8, chords: 'Bm G A F#m Bm G A F#', drums: 'drive', bass: 'drive', gtr: 'chug', arp: 'up16', arpInst: 'bell', crash: true, inst: 'lead',
         lead: `F#5:2 F#5:2 B5:2 F#5:2 D6:3 C#6:1 B5:2 A5:2 | B5:4 G5:2 D5:2 G5:2 A5:2 B5:4 | A5:2 A5:2 E6:2 A5:2 C#6:3 B5:1 A5:2 G5:2 | F#5:8 C#5:4 E5:4 |
                F#5:2 F#5:2 B5:2 F#5:2 D6:3 C#6:1 B5:2 D6:2 | E6:4 D6:2 B5:2 G5:4 B5:4 | C#6:4 A5:2 E5:2 A5:2 B5:2 C#6:4 | A#5:8 F#5:4 C#6:4`,
       },
       B: {
-        bars: 8, chords: 'G A Bm Bm G A F# F#', drums: 'four', bass: 'octave', gtr: 'power', pad: true, crash: true, inst: 'brass',
+        bars: 8, chords: 'G A Bm Bm G A F# F#', drums: 'metal', bass: 'octave', gtr: 'power', pad: true, crash: true, inst: 'brass',
         lead: `D6:6 B5:2 G5:4 D6:4 | E6:6 C#6:2 A5:4 E6:4 | F#6:8 D6:4 B5:4 | C#6:2 D6:2 C#6:2 B5:2 A5:4 F#5:4 |
                G5:2 B5:2 D6:2 G6:2 F#6:4 D6:4 | E6:2 C#6:2 A5:2 E6:2 G6:4 E6:4 | F#6:4 E6:2 C#6:2 A#5:4 C#6:4 | F#6:12 -:4`,
       },
     },
   },
   {
-    name: 'Moonlit Roofs（月下屋頂）', bpm: 152, delay: 3, order: ['I', 'A', 'B', 'A'], loop: 1,
+    name: 'Moonlit Blade（日本・月下之刃）', bpm: 166, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
     sec: {
-      I: { bars: 2, chords: 'Em Em', drums: 'taiko', bass: 'pedal', arp: 'koto', arpInst: 'harp' },
+      I: { bars: 2, chords: 'Em Em', drums: 'breakb', bass: 'drive', gtr: 'hits', arp: 'koto', arpInst: 'harp', crash: true },
       A: {
-        bars: 8, chords: 'Em F Em Am Em F C B', drums: 'breakb', bass: 'funk', arp: 'koto', arpInst: 'harp', crash: true, inst: 'pluck',
+        bars: 8, chords: 'Em F Em Am Em F C B', drums: 'drive', bass: 'octave', gtr: 'chug', arp: 'koto', arpInst: 'harp', crash: true, inst: 'pluck',
         lead: `E5:2 F5:2 A5:2 B5:4 A5:2 F5:2 E5:2 | F5:4 E5:2 C5:2 A4:4 C5:4 | B4:2 C5:2 E5:2 F5:4 E5:2 C5:2 B4:2 | A4:12 -:4 |
                E5:2 F5:2 A5:2 B5:4 C6:2 B5:2 A5:2 | C6:4 B5:2 A5:2 F5:4 A5:4 | E5:4 F5:2 E5:2 C5:4 B4:4 | B4:12 -:4`,
       },
       B: {
-        bars: 8, chords: 'Am Am F F C C B B', drums: 'breakb', bass: 'octave', pad: true, crash: true, inst: 'flute',
+        bars: 8, chords: 'Am Am F F C C B B', drums: 'metal', bass: 'octave', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
         lead: `A5:8 C6:4 B5:4 | A5:4 F5:4 E5:8 | F5:8 A5:4 C6:4 | B5:4 A5:4 F5:8 |
                E6:8 C6:4 B5:4 | C6:4 A5:4 E5:8 | F5:4 E5:4 D#5:8 | B4:4 D#5:4 F#5:4 B5:4`,
       },
     },
   },
   {
-    name: 'Cloud Temple（雲海寺院）', bpm: 120, delay: 3, order: ['I', 'A', 'B', 'A'], loop: 1, gong: true,
+    name: 'Cloud Dragon（中國・雲海龍吟）', bpm: 156, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1, gong: true,
     sec: {
-      I: { bars: 2, chords: 'Dm Dm', drums: 'taiko', bass: 'pedal', arp: 'roll', arpInst: 'harp', pad: true },
+      I: { bars: 2, chords: 'Dm Dm', drums: 'taiko', bass: 'drive', gtr: 'hits', arp: 'roll', arpInst: 'harp' },
       A: {
-        bars: 8, chords: 'Dm C Bb C Dm C Bb A', drums: 'temple', bass: 'half', arp: 'up8', arpInst: 'harp', pad: true, crash: true, inst: 'fiddle',
+        bars: 8, chords: 'Dm C Bb C Dm C Bb A', drums: 'drive', bass: 'octave', gtr: 'chug', arp: 'up8', arpInst: 'harp', crash: true, inst: 'fiddle',
         lead: `A5:4 C6:2 A5:2 G5:4 F5:4 | G5:4 A5:2 G5:2 E5:4 C5:4 | D5:4 F5:2 G5:2 F5:4 D5:4 | C5:8 E5:4 G5:4 |
                A5:4 C6:2 D6:2 C6:4 A5:4 | G5:4 E5:2 G5:2 C6:4 G5:4 | F5:4 D5:4 Bb4:4 D5:4 | E5:8 C#5:4 A4:4`,
       },
       B: {
-        bars: 8, chords: 'Gm A Dm Dm Bb C A A', drums: 'rock', bass: 'drive', arp: 'up16', arpInst: 'harp', stab: 'push', pad: true, crash: true, inst: 'flute',
+        bars: 8, chords: 'Gm A Dm Dm Bb C A A', drums: 'metal', bass: 'drive', gtr: 'power', arp: 'up16', arpInst: 'harp', stab: 'push', pad: true, crash: true, inst: 'brass',
         lead: `D6:6 C6:2 Bb5:4 G5:4 | A5:6 G5:2 E5:4 C#5:4 | D5:4 F5:4 A5:4 D6:4 | F6:8 E6:4 D6:4 |
                D6:4 Bb5:4 F5:4 Bb5:4 | C6:4 G5:4 E5:4 G5:4 | A5:4 C#6:4 E6:4 G6:4 | A6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: 'Underground Bell（英國・地下鐘聲）', bpm: 174, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1, ring: true,
+    sec: {
+      I: { bars: 2, chords: 'E5 E5', drums: 'half', bass: 'pedal', gtr: 'chug', crash: true, ring: true },
+      A: {
+        bars: 8, chords: 'Em Em C D Em Em C B', drums: 'drive', bass: 'drive', gtr: 'chug', crash: true, inst: 'lead',
+        lead: `E5:2 E5:2 G5:2 E5:2 A5:2 E5:2 B5:4 | D6:2 B5:2 A5:2 G5:2 A5:4 E5:4 | G5:2 G5:2 C6:2 G5:2 E6:4 D6:4 | C6:2 B5:2 A5:2 F#5:2 D5:8 |
+               E5:2 E5:2 G5:2 E5:2 A5:2 E5:2 B5:4 | E6:4 D6:2 B5:2 D6:2 B5:2 G5:4 | C6:4 E6:4 G6:4 E6:4 | F#6:8 D#6:4 B5:4`,
+      },
+      B: {
+        bars: 8, chords: 'C D Em Em C D B B', drums: 'metal', bass: 'octave', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
+        lead: `E6:6 D6:2 C6:4 G5:4 | F#6:6 E6:2 D6:4 A5:4 | G6:4 F#6:4 E6:4 B5:4 | E6:12 -:4 |
+               C6:2 E6:2 G6:4 E6:2 C6:2 E6:4 | F#6:4 D6:2 A5:2 D6:4 F#6:4 | G6:4 F#6:4 D#6:4 F#6:4 | B6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: 'Muay Thai Fever（泰國・泰拳狂熱）', bpm: 168, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
+    sec: {
+      I: { bars: 2, chords: 'Dm Dm', drums: 'muaythai', bass: 'pedal', gtr: 'hits', crash: true },
+      A: {
+        bars: 8, chords: 'Dm Dm C Dm Bb C Dm Dm', drums: 'muaythai', bass: 'drive', gtr: 'chug', crash: true, inst: 'reed',
+        lead: `D5:2 F5:2 G5:2 A5:2 C6:2 A5:2 G5:4 | A5:2 G5:2 F5:2 D5:2 F5:4 D5:4 | C5:2 D5:2 F5:2 G5:2 A5:4 G5:4 | F5:2 G5:2 A5:4 D5:8 |
+               D6:2 C6:2 A5:2 G5:2 F5:4 G5:4 | A5:2 C6:2 D6:4 C6:2 A5:2 G5:4 | F5:2 G5:2 A5:2 C6:2 D6:4 C6:2 A5:2 | D6:12 -:4`,
+      },
+      B: {
+        bars: 8, chords: 'Bb C Dm Dm Bb C A A', drums: 'muaythai', bass: 'octave', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
+        lead: `F5:4 Bb5:4 D6:6 C6:2 | E6:4 D6:2 C6:2 G5:8 | A5:4 D6:4 F6:6 E6:2 | D6:12 -:4 |
+               D6:2 F6:2 D6:2 Bb5:2 D6:4 F6:4 | E6:2 G6:2 E6:2 C6:2 E6:4 G6:4 | A6:4 G6:2 E6:2 C#6:4 E6:4 | A6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: 'Kumite Anthem（拳帖之歌）', bpm: 100, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
+    sec: {
+      I: { bars: 2, chords: 'C G', drums: 'none', bass: 'pedal', arp: 'up8', arpInst: 'harp', pad: true },
+      A: {
+        bars: 8, chords: 'C G Am F C G F G', drums: 'half', bass: 'half', arp: 'up8', arpInst: 'harp', pad: true, inst: 'flute',
+        lead: `E5:6 D5:2 C5:4 G5:4 | D5:8 B4:4 D5:4 | C5:6 B4:2 A4:4 E5:4 | F5:12 -:4 |
+               E5:6 F5:2 G5:4 C6:4 | B5:8 G5:4 D5:4 | A5:6 G5:2 F5:4 A5:4 | G5:12 -:4`,
+      },
+      B: {
+        bars: 8, chords: 'F G Em Am F G C C', drums: 'four', bass: 'octave', arp: 'up16', arpInst: 'harp', pad: true, crash: true, inst: 'brass',
+        lead: `A5:4 C6:4 F6:6 E6:2 | D6:6 C6:2 B5:4 G5:4 | G5:4 B5:4 E6:6 D6:2 | C6:8 A5:4 C6:4 |
+               A5:4 C6:4 F6:4 A6:4 | G6:6 F6:2 D6:4 B5:4 | C6:4 E6:4 G6:4 E6:4 | C6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: "Titan's Wrath（希臘・泰坦之怒）", bpm: 160, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
+    sec: {
+      I: { bars: 2, chords: 'Dm Dm', drums: 'metal', bass: 'drive', gtr: 'hits', crash: true },
+      A: {
+        bars: 8, chords: 'Dm Dm Bb A Dm Dm Gm A', drums: 'drive', bass: 'octave', gtr: 'chug', stab: 'push', crash: true, inst: 'brass',
+        lead: `D5:4 F5:2 A5:2 D6:4 C#6:4 | D6:2 E6:2 F6:4 E6:2 D6:2 A5:4 | Bb5:4 A5:2 G5:2 F5:4 D5:4 | E5:4 C#5:4 A4:8 |
+               D5:4 F5:2 A5:2 D6:4 F6:4 | E6:4 D6:2 C#6:2 D6:8 | G5:4 Bb5:4 D6:4 G6:4 | F6:4 E6:4 C#6:4 A5:4`,
+      },
+      B: {
+        bars: 8, chords: 'Bb C Dm Dm Bb C A A', drums: 'metal', bass: 'drive', gtr: 'power', pad: true, crash: true, inst: 'lead',
+        lead: `F6:6 E6:2 D6:4 Bb5:4 | G6:6 F6:2 E6:4 C6:4 | A6:8 F6:4 D6:4 | D6:12 -:4 |
+               Bb5:2 D6:2 F6:4 Bb6:4 A6:4 | C6:2 E6:2 G6:4 E6:4 G6:4 | A6:4 G6:2 F6:2 E6:4 C#6:4 | A6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: 'Sands of Seth（埃及・沙之咒）', bpm: 164, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
+    sec: {
+      I: { bars: 2, chords: 'E E', drums: 'breakb', bass: 'pedal', gtr: 'hits', crash: true },
+      A: {
+        bars: 8, chords: 'E F E Dm E F Dm E', drums: 'drive', bass: 'octave', gtr: 'chug', crash: true, inst: 'reed',
+        lead: `E5:2 F5:2 G#5:2 A5:2 B5:4 A5:4 | G#5:2 F5:2 E5:4 F5:4 E5:4 | E5:2 F5:2 G#5:2 B5:2 C6:4 B5:4 | A5:4 G#5:2 F5:2 E5:8 |
+               E6:4 D6:2 C6:2 B5:4 G#5:4 | A5:2 B5:2 C6:4 B5:2 A5:2 G#5:4 | F5:4 G#5:4 A5:4 B5:4 | E5:12 -:4`,
+      },
+      B: {
+        bars: 8, chords: 'Am Am F E Am Am Dm E', drums: 'metal', bass: 'drive', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
+        lead: `A5:4 C6:4 E6:6 D6:2 | C6:4 B5:2 A5:2 E5:8 | F5:4 A5:4 C6:4 F6:4 | E6:8 G#5:4 B5:4 |
+               A5:2 B5:2 C6:2 D6:2 E6:4 A6:4 | G#6:4 F6:2 E6:2 C6:4 A5:4 | D6:4 F6:4 A6:4 F6:4 | E6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: 'Molten Saga（冰島・熔岩傳說）', bpm: 176, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1,
+    sec: {
+      I: { bars: 2, chords: 'E5 E5', drums: 'metal', bass: 'drive', gtr: 'chug', crash: true },
+      A: {
+        bars: 8, chords: 'Em Em C D Em Em C B', drums: 'gallop', bass: 'gallop', gtr: 'chug', crash: true, inst: 'lead',
+        lead: `B4:2 E5:2 G5:2 B5:2 E6:4 D6:4 | B5:2 G5:2 E5:4 G5:4 B5:4 | C6:4 B5:2 A5:2 G5:4 E5:4 | F#5:4 A5:4 D6:8 |
+               B4:2 E5:2 G5:2 B5:2 E6:4 G6:4 | F#6:4 E6:2 D6:2 B5:8 | C6:4 E6:4 G6:4 E6:4 | D#6:8 F#6:4 B5:4`,
+      },
+      B: {
+        bars: 8, chords: 'C D Em Em C D B B', drums: 'metal', bass: 'octave', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'brass',
+        lead: `E6:6 G6:2 E6:4 C6:4 | F#6:6 A6:2 F#6:4 D6:4 | G6:8 E6:4 B5:4 | E6:12 -:4 |
+               C6:2 E6:2 G6:4 C6:2 E6:2 G6:4 | D6:2 F#6:2 A6:4 D6:2 F#6:2 A6:4 | B6:4 A6:4 F#6:4 D#6:4 | E6:12 -:4`,
+      },
+    },
+  },
+  {
+    name: "Tiger's Throne（拳帖之王）", bpm: 150, delay: 3, order: ['I', 'A', 'B', 'A', 'B'], loop: 1, gong: true,
+    sec: {
+      I: { bars: 2, chords: 'Am Am', drums: 'taiko', bass: 'pedal', pad: true, crash: true },
+      A: {
+        bars: 8, chords: 'Am F G Am Am F E E', drums: 'drive', bass: 'octave', gtr: 'chug', pad: true, crash: true, inst: 'brass',
+        lead: `A5:6 B5:2 C6:4 E6:4 | F6:8 E6:4 C6:4 | D6:6 C6:2 B5:4 G5:4 | A5:12 -:4 |
+               A5:4 C6:4 E6:4 A6:4 | G6:4 F6:4 E6:4 C6:4 | B5:4 G#5:4 E5:4 G#5:4 | B5:12 -:4`,
+      },
+      B: {
+        bars: 8, chords: 'F G Am Am F G E E', drums: 'metal', bass: 'drive', gtr: 'power', stab: 'push', pad: true, crash: true, inst: 'lead',
+        lead: `C6:4 F6:4 A6:6 G6:2 | G6:4 D6:4 B5:4 D6:4 | E6:6 D6:2 C6:4 A5:4 | A5:12 E6:4 |
+               F6:4 E6:2 F6:2 A6:8 | G6:4 F6:2 G6:2 B6:8 | G#6:4 E6:4 B5:4 E6:4 | E6:12 -:4`,
       },
     },
   },
@@ -492,12 +628,15 @@ export const SONG_NAMES = SONGS.map((s) => s.name);
 
 let music = null;
 
+const GLIDE = new Set(['fiddle', 'square', 'reed', 'lead']);   // 連音時帶滑音的樂器
+
 // 某一格（16 分音符）要發出的所有聲音
 function playStep(S, sec, bar, s16, t, step) {
   const ch = sec.chordList[bar % sec.chordList.length];
   const fill = bar === sec.bars - 1 && s16 >= 12 && sec.drums !== 'taiko';
   if (s16 === 0 && bar === 0 && sec.crash) crash(t);
   if (s16 === 0 && bar === 0 && S.gong) gong(t);
+  if (s16 === 0 && bar === 0 && S.ring && sec.ring) ring(t);
   // 鼓
   const D = DRUMS[sec.drums] || {};
   const on = (p) => p && p[s16] && p[s16] !== '.';
@@ -513,6 +652,7 @@ function playStep(S, sec, bar, s16, t, step) {
   if (on(D.c)) clap(t);
   if (on(D.w)) taiko(t);
   if (on(D.z)) shaker(t, s16 % 4 === 0 ? 1 : 0.6);
+  if (on(D.g)) ching(t, s16 % 8 === 6 ? 1 : 0.7);
   // 貝斯（E2～D#3，另疊一個低八度的次低音）
   const root = 40 + ((ch.pc - 4 + 12) % 12);
   for (const [s, len, iv] of BASS[sec.bass] || []) if (s === s16) INST.bass(t, len * step * 0.92, root + iv);
@@ -537,7 +677,7 @@ function playStep(S, sec, bar, s16, t, step) {
       const note = sec.mel.notes[i];
       const prev = sec.mel.notes[i - 1];
       const legato = prev && prev.step + prev.len === note.step && Math.abs(prev.n - note.n) <= 4;
-      INST[sec.inst || 'brass'](t, note.len * step * 0.94, note.n, { glide: legato && (sec.inst === 'fiddle' || sec.inst === 'square') ? prev.n : null });
+      INST[sec.inst || 'brass'](t, note.len * step * 0.94, note.n, { glide: legato && GLIDE.has(sec.inst) ? prev.n : null });
     }
   }
 }

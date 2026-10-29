@@ -114,7 +114,7 @@ export class Fighter {
       const last = inp.hist[inp.hist.length - 1], prev = inp.hist[inp.hist.length - 2];
       if (this.def.doubleJump && !this.dblUsed && last.t === inp.frame && rd >= 7 && prev && rel(prev.d, this.facing) < 7 && this.st > 6) {
         this.dblUsed = true;
-        this.vy = this.def.jumpVy * 0.82;
+        this.vy = this.def.jumpVy * PHYS.jumpMul * 0.82;
         this.vx = (rd === 9 ? 1 : rd === 7 ? -1 : 0) * this.def.jumpVx * this.facing;
         this.st = 0;
         this.battle.fx.ring(this.x, this.y + 20, '#c9a7ff', 0.8);
@@ -263,7 +263,7 @@ export class Fighter {
       case 'prejump':
         this.vx = 0;
         if (this.st >= PHYS.prejump) {
-          this.vy = d.jumpVy;
+          this.vy = d.jumpVy * PHYS.jumpMul;
           this.vx = this.jumpDir * d.jumpVx * this.facing;
           this.y = 0.01;
           this.setState('air', { airUsed: false, dblUsed: false });
@@ -299,6 +299,7 @@ export class Fighter {
       default: break;
     }
     this.updateMass();
+    this.updateTrail();
 
     // 暈眩值自然回復
     this.stunIdle++;
@@ -306,6 +307,22 @@ export class Fighter {
     // 血條紅色殘影
     if (this.hpTrail > this.hp) this.hpTrail -= this.combo > 0 && (this.state === 'hitstun' || this.state === 'airHit') ? 0 : Math.max(2, (this.hpTrail - this.hp) * 0.06);
     if (this.hpTrail < this.hp) this.hpTrail = this.hp;
+  }
+
+  // 殘影：帶 trail 的招式（突進、升龍、招牌跳躍技、超必殺）記錄最近幾格的姿勢
+  updateTrail() {
+    const on = this.state === 'move' && this.move.trail && !this.lockFailed && !this.invisible;
+    if (!this.trail) this.trail = [];
+    if (on && this.st % 2 === 0) {
+      const fi = this.frameInfo();
+      const fr = this.sprite(fi);
+      if (fr) {
+        this.trail.push({ fi, fr, x: this.x, y: this.y, facing: this.facing, life: 8 });
+        if (this.trail.length > 4) this.trail.shift();
+      }
+    }
+    for (const g of this.trail) g.life--;
+    this.trail = this.trail.filter((g) => g.life > 0);
   }
 
   tickMove() {
@@ -328,6 +345,10 @@ export class Fighter {
         this.vx = m.jump.vx * this.facing;
         this.y = Math.max(this.y, 0.01);
       }
+      // 空中改變軌跡（隕石俯衝等）
+      if (m.dive && t === m.dive.t) { this.vy = m.dive.vy; this.vx = m.dive.vx * this.facing; }
+      // 踏地、拍地的瞬間震動
+      if (m.shakeAt && t === m.shakeAt[0]) { this.battle.shake(m.shakeAt[1]); this.battle.dust(this.x + this.facing * 70, 1.2); }
       if (m.proj && t === m.proj.t) this.battle.spawnProjectile(this, m.proj);
       if (m.lock && t === m.lock.by && !this.hitDone.has(m.lock.hit)) {
         this.lockFailed = true;
@@ -365,6 +386,7 @@ export class Fighter {
       case 'air':
         this.setState('landing', { landT: PHYS.landing, landSeq: null });
         this.vx = 0;
+        this.battle.dust(this.x, 0.45);
         break;
       case 'move': {
         const m = this.move;
@@ -404,7 +426,7 @@ export class Fighter {
     if (this.hitstop > 0) return;
     if (this.state === 'thrown') return;
     if (this.y > 0 || this.vy > 0) {
-      this.vy -= this.state === 'airHit' ? PHYS.gravity * 0.92 : PHYS.gravity;
+      this.vy -= this.state === 'airHit' ? PHYS.gravity * 0.92 : this.vy < 0 ? PHYS.gravity * PHYS.fallMul : PHYS.gravity;
       this.y += this.vy;
       this.x += this.vx;
       if (this.y <= 0) this.onLand();
@@ -413,6 +435,8 @@ export class Fighter {
     }
     if (this.pushV) {
       this.x += this.pushV;
+      // 重擊被推開時腳下揚塵（滑行感）
+      if (Math.abs(this.pushV) > 5 && this.y <= 0 && this.battle.tick % 3 === 0) this.battle.fx.skid(this.x - Math.sign(this.pushV) * 20, Math.sign(this.pushV));
       this.pushV *= PHYS.pushDecay;
       if (Math.abs(this.pushV) < 0.08) this.pushV = 0;
     }
@@ -461,6 +485,7 @@ export class Fighter {
       this.setState('blockstun', { stunT: hit.bs, lowStance: this.lowStance, blockFrom: away });
       this.pushV = away * (hit.push || 5) * 1.25;
       this.hitstop = src.proj ? Math.round(hs * 0.7) : hs;
+      this.hitShake = 2;
       att.gainMeter((hit.meter || 4) * 0.5);
       this.gainMeter(2);
       if (this.hp <= 0) this.knockOut(att, hit, away);
@@ -487,8 +512,9 @@ export class Fighter {
     }
     att.gainMeter(hit.meter ?? 6);
     this.gainMeter((hit.meter ?? 6) * 0.5);
-    this.hitstop = src.proj ? Math.round(hs * 0.8) : hs;
+    this.hitstop = (src.proj ? Math.round(hs * 0.8) : hs) + (counter ? 3 : 0);
     this.flash = FX.hitFlash + (HEAVY.has(sk) ? 3 : 0);   // 重擊白閃久一點
+    this.hitShake = FX.hitShake[sk] ?? 4;                  // 頓幀中受擊者左右抖動的幅度
 
     if (this.hp <= 0 && this.battle.noKO(this)) this.hp = 1;
     if (this.hp <= 0) { this.knockOut(att, hit, away); return 'hit'; }
@@ -587,9 +613,15 @@ export class Fighter {
       case 'lose': [anim, idx] = pick(STATE_ANIMS.dizzy); break;
       default: [anim, idx] = pick(STATE_ANIMS.idle);
     }
-    const mf = d.massFrames[anim];
-    if (mf && mf.includes(idx) && this.airborne) mass = true;
+    mass = this.isMass(anim, idx);
     return { anim, idx, mass };
+  }
+
+  // 空中姿勢以重心為錨點：指定的空中影格，或任何空中技（招牌跳躍技借用站姿影格時才不會錯位）
+  isMass(anim, idx) {
+    if (!this.airborne) return false;
+    const mf = this.def.massFrames[anim];
+    return !!((mf && mf.includes(idx)) || (this.state === 'move' && this.move.air));
   }
 
   // 取得 sprite 影格（缺格時往前找最近的有效格）
@@ -714,7 +746,7 @@ export class Fighter {
     if (!atlas || !atlas.anims[anim]) return null;
     const fr = atlas.anims[anim][e[0]];
     if (!fr) return null;
-    const fi = { anim, idx: e[0], mass: !!(this.def.massFrames[anim] && this.def.massFrames[anim].includes(e[0]) && this.airborne) };
+    const fi = { anim, idx: e[0], mass: this.isMass(anim, e[0]) };
     const x = this.spriteXform(fi, fr);
     const reach = Math.min(h.maxReach ?? Infinity, (fr.rx - x.ax) * x.k + x.dx);
     const [bx, , bw] = h.box;

@@ -1542,6 +1542,328 @@
         }
       },
       "stance": "upright Muay Thai stance, lead leg light, both hands raised high"
+    },
+    "atlas": {
+      "name": "ATLAS",
+      "desc": "ATLAS, a colossal Greek pankration champion in his 40s, about two heads taller and far broader than an average fighter, built like a living statue: bronze-tanned skin, curly black hair and a thick short black beard, a scarred stern face with a broken nose; a single heavy bronze shoulder guard on the left shoulder, thick bronze bracers on both forearms, a wide brown leather belt with a bronze lion-head buckle, a short crimson wrestling kilt, bronze shin greaves, bare scarred chest and arms, barefoot",
+      "portrait": "head-and-shoulders bust portrait of ATLAS, three-quarter view facing right, cold imposing glare, dramatic golden rim light",
+      "stance": "towering upright stance, knees slightly bent, huge fists raised at chest height, bronze bracers forward",
+      "strips": {
+        "idle": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "towering upright stance, huge fists raised at chest height",
+            "chest rising with a deep breath",
+            "shoulders rolling forward, menacing",
+            "sinking slightly",
+            "chest expanding, fists clenched",
+            "almost identical to frame 1 (loop)"
+          ]
+        },
+        "walk": {
+          "grid": [
+            2,
+            4
+          ],
+          "frames": [
+            "heavy ground-shaking step forward to the right, fists raised",
+            "weight landing on the front foot",
+            "rear foot swinging forward slowly",
+            "rear foot stomping down in front",
+            "settling, fists raised",
+            "front foot lifting again",
+            "stepping forward",
+            "back to the starting stance (loop)"
+          ]
+        },
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "titan stomp: stomping the ground to send a shockwave forward",
+          "frames": [
+            "towering stance",
+            "raising the front knee very high, both fists raised",
+            "knee at the highest point, body leaning back",
+            "stomping the foot down hard, the ground cracks under the foot",
+            "foot planted, cracks and dust exploding forward along the ground to the right",
+            "leaning forward, a wave of cracked rock rushing forward to the right",
+            "holding the low stance, dust settling",
+            "rising back to the stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "colossus uppercut: rising double-fisted upward smash (anti-air)",
+          "frames": [
+            "towering stance",
+            "crouching low with both fists clasped together near the ground",
+            "surging upward, clasped fists swinging up",
+            "leaping a little off the ground, clasped double fists smashing straight upward above the head, golden shock ring",
+            "at the top, both arms fully raised overhead",
+            "starting to come down, arms still raised",
+            "landing heavily, knees bent",
+            "rising back to the stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "bronze charge: armored shoulder tackle dash",
+          "frames": [
+            "towering stance",
+            "lowering the left bronze shoulder guard forward, crouching",
+            "pushing off, starting to dash forward to the right",
+            "full-speed shoulder tackle forward to the right, bronze shoulder glowing, dust trail behind",
+            "shoulder tackle impact pose, body leaning hard to the right, shock lines",
+            "skidding to a stop",
+            "straightening up",
+            "back to the stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "towering stance",
+            "standing up tall",
+            "crossing the huge arms over the chest",
+            "raising both fists high",
+            "flexing both arms overhead like a statue, golden glow",
+            "holding the triumphant pose"
+          ]
+        }
+      }
+    },
+    "seth": {
+      "name": "SETH",
+      "desc": "SETH, a tall lean Egyptian sand-mystic fighter in his 30s: deep bronze skin, shaved head with a thin gold-and-lapis circlet, kohl-lined piercing amber eyes, black tattoos of stylized eyes and lines on both forearms; wears a sleeveless white linen tunic with a wide gold-and-lapis collar necklace, a dark navy sash, white wrapped linen trousers, gold arm cuffs and ankle cuffs, barefoot; a faint swirl of golden sand around his hands",
+      "portrait": "head-and-shoulders bust portrait of SETH, three-quarter view facing right, cold mysterious smile, golden sand swirling, dramatic amber rim light",
+      "stance": "elegant side stance, front hand open and forward like a blade, rear hand raised near the face, golden sand swirling around the hands",
+      "strips": {
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "sandstorm: releasing a spinning sand tornado forward",
+          "frames": [
+            "elegant side stance",
+            "drawing both hands back to the rear hip, golden sand gathering",
+            "sand spinning faster between the hands",
+            "thrusting both open palms forward toward the right",
+            "both arms fully extended to the right, a spinning golden sand tornado bursting from the palms",
+            "holding the extended palms, sand streaming",
+            "sand fading",
+            "returning to the stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "desert spikes: slamming a palm on the ground to raise sand spikes (anti-air)",
+          "frames": [
+            "elegant side stance",
+            "crouching, raising one palm high",
+            "slamming the palm down on the ground in front",
+            "palm on the ground, sharp golden sand spikes erupting upward in front of him to the right",
+            "spikes at full height, towering",
+            "spikes crumbling into sand",
+            "standing up",
+            "returning to the stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "sand dive: sinking into sand and bursting out with a rising strike",
+          "frames": [
+            "elegant side stance",
+            "body starting to dissolve into a swirl of golden sand from the feet up",
+            "mostly dissolved, only a sand whirlwind with a faint silhouette",
+            "a pile of swirling sand on the ground",
+            "bursting up out of a sand geyser, rising knee strike",
+            "in the air, rising palm strike upward to the right, sand trailing",
+            "landing",
+            "returning to the stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "elegant side stance",
+            "standing up tall",
+            "arms folded, chin raised",
+            "raising one open palm, sand swirling up",
+            "a tall column of golden sand swirling around him",
+            "holding the pose, eyes glowing amber"
+          ]
+        }
+      }
+    },
+    "volkan": {
+      "name": "VOLKAN",
+      "desc": "VOLKAN, a massive Icelandic volcano brawler in his 30s, much broader than an average fighter: pale skin streaked with soot, long wild fiery-red hair and a thick braided red beard, glowing orange cracks of magma running along both forearms and fists; wears a charred black sleeveless leather vest with iron rivets, a wide belt with a black obsidian buckle, dark heavy trousers, iron-shod boots, both fists glowing molten orange",
+      "portrait": "head-and-shoulders bust portrait of VOLKAN, three-quarter view facing right, roaring fierce grin, molten fists glowing, embers in the air, dramatic orange rim light",
+      "stance": "heavy brawler stance, knees bent, both molten glowing fists raised, shoulders hunched forward",
+      "strips": {
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "magma fist: punching a blob of molten lava forward",
+          "frames": [
+            "heavy brawler stance, glowing fists raised",
+            "pulling the rear fist far back, magma gathering on the fist",
+            "fist glowing white-hot, body twisted",
+            "throwing a huge straight punch toward the right",
+            "punch fully extended to the right, a blob of molten lava flying off the fist",
+            "holding the punch, embers",
+            "pulling back",
+            "returning to the stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "eruption: punching the ground to raise a pillar of fire (anti-air)",
+          "frames": [
+            "heavy brawler stance",
+            "raising both fists high overhead",
+            "smashing both fists down into the ground in front",
+            "fists in the ground, a tall pillar of fire and lava erupting upward in front of him to the right",
+            "fire pillar at full height",
+            "fire pillar fading into embers",
+            "standing up",
+            "returning to the stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "meteor dive: leaping and diving fist-first like a burning meteor",
+          "frames": [
+            "heavy brawler stance",
+            "crouching deep, fists glowing",
+            "leaping up into the air",
+            "in the air, turning downward, one fist cocked back, flames around the body",
+            "diving fist-first diagonally down toward the lower right, wrapped in fire like a meteor",
+            "fist smashing into the ground, fiery explosion",
+            "rising from the crater",
+            "returning to the stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "heavy brawler stance",
+            "standing up tall",
+            "slamming both glowing fists together, sparks",
+            "raising both fists, flames rising",
+            "roaring at the sky, fire erupting around him",
+            "holding the roaring pose"
+          ]
+        }
+      }
+    },
+    "tesshin": {
+      "name": "TESSHIN",
+      "desc": "TESSHIN, a legendary old karate grandmaster in his 60s, tall and still powerfully muscular: weathered tan skin, long white hair tied back in a knot, thick white eyebrows and a short white beard, a calm fearsome gaze, an old scar across the nose; wears a faded dark-grey karate gi with the sleeves torn off, a battered straw kasa hat hanging on his back by a cord, half of a frayed black belt tied at the waist, bandaged forearms, barefoot; a faint golden tiger-spirit aura around him",
+      "portrait": "head-and-shoulders bust portrait of TESSHIN, three-quarter view facing right, calm overwhelming gaze, a faint golden tiger-spirit aura, dramatic gold rim light",
+      "stance": "deep calm karate stance, front open palm forward, rear fist at the hip, perfectly balanced",
+      "strips": {
+        "sp1": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "tiger spirit wave: releasing a golden ki blast shaped like a roaring tiger head",
+          "frames": [
+            "deep calm karate stance",
+            "drawing both palms back to the rear hip, golden energy gathering",
+            "golden energy forming a small tiger head between the palms",
+            "energy growing big and bright",
+            "thrusting both palms forward toward the right",
+            "both palms fully extended to the right, a large golden tiger-head energy blast bursting out",
+            "holding the palms, energy fading",
+            "returning to the stance"
+          ]
+        },
+        "sp2": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "rising tiger: powerful rising palm strike wrapped in golden flame (anti-air)",
+          "frames": [
+            "deep calm karate stance",
+            "crouching low, palm drawn back near the ground",
+            "surging upward with a rising palm strike",
+            "in the air, palm thrust straight upward, golden flame shaped like tiger claws",
+            "at the top, palm fully raised overhead",
+            "falling, arm still raised",
+            "landing in a crouch",
+            "returning to the stance"
+          ]
+        },
+        "sp3": {
+          "grid": [
+            2,
+            4
+          ],
+          "label": "earth palm: slamming a palm on the ground to send a golden shockwave along the floor",
+          "frames": [
+            "deep calm karate stance",
+            "raising one palm high overhead",
+            "dropping into a low stance",
+            "slamming the palm flat on the ground in front",
+            "palm on the ground, a golden shockwave racing forward along the floor to the right",
+            "shockwave spreading, dust",
+            "standing up",
+            "returning to the stance"
+          ]
+        },
+        "win": {
+          "grid": [
+            2,
+            3
+          ],
+          "frames": [
+            "deep calm karate stance",
+            "standing up straight",
+            "putting the straw hat on the head",
+            "turning slightly, arms at the sides, golden aura flaring",
+            "a huge spectral golden tiger appearing behind him",
+            "holding the calm pose under the hat"
+          ]
+        }
+      }
     }
   },
   "fx": {
@@ -1603,6 +1925,62 @@
         "kunai, longer trail",
         "kunai, bright glint"
       ]
+    },
+    "atlas_quake": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "foot",
+      "desc": "a wave of cracked rock and dust bursting up from the ground and rushing to the RIGHT, low and wide",
+      "frames": [
+        "rock wave rising",
+        "rock wave tall, dust",
+        "rock wave moving, debris",
+        "rock wave crumbling"
+      ]
+    },
+    "seth_tornado": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "desc": "a spinning tornado of golden sand moving toward the RIGHT, taller than wide",
+      "frames": [
+        "sand tornado spinning",
+        "sand tornado shifted",
+        "sand tornado wider",
+        "sand tornado brighter"
+      ]
+    },
+    "volkan_magma": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "desc": "a blob of glowing molten lava flying toward the RIGHT with a fiery tail and embers trailing to the left",
+      "frames": [
+        "lava blob",
+        "lava blob, tail longer",
+        "lava blob, embers",
+        "lava blob, brighter core"
+      ]
+    },
+    "tesshin_tiger": {
+      "grid": [
+        2,
+        2
+      ],
+      "anchor": "centroid",
+      "desc": "a large golden ki energy blast shaped like a roaring tiger head, flying toward the RIGHT, with a golden flame tail trailing to the left",
+      "frames": [
+        "golden tiger head, jaws open",
+        "golden tiger head, flames shifted",
+        "golden tiger head, roaring wider",
+        "golden tiger head, brighter"
+      ]
     }
   },
   "stages": {
@@ -1613,7 +1991,11 @@
     "rooftop": "A wide side-view 2D fighting game stage background: rooftops of a Japanese castle town at night under a huge full moon, a castle keep on the hill, paper lanterns, cherry blossom petals drifting, dark tiled roofs stretching into the distance, the foreground is a wide flat tiled rooftop. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
     "temple": "A wide side-view 2D fighting game stage background: a misty mountain temple courtyard at dawn, red lacquered pillars and curved golden roofs, bronze incense burners with smoke, pine trees and distant peaks above the clouds, robed monks watching quietly on the steps in the middle distance, worn stone tiles in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
     "gym": "A wide side-view 2D fighting game stage background: a gritty underground boxing arena at night, a boxing ring with ropes in the background, hanging heavy bags, bright spotlights and haze, a roaring crowd silhouetted behind barriers in the middle distance, a dark polished concrete floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
-    "stadium": "A wide side-view 2D fighting game stage background: an open-air Thai kickboxing stadium on a warm tropical night, a raised ring with ropes in the background, colorful string lights, palm trees and golden temple roofs in the distance, a lively crowd in the stands in the middle distance, a smooth wooden floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting."
+    "stadium": "A wide side-view 2D fighting game stage background: an open-air Thai kickboxing stadium on a warm tropical night, a raised ring with ropes in the background, colorful string lights, palm trees and golden temple roofs in the distance, a lively crowd in the stands in the middle distance, a smooth wooden floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "ruins": "A wide side-view 2D fighting game stage background: ancient Greek temple ruins on a cliff by the Aegean sea under a stormy sunset sky, broken marble columns and a giant toppled bronze statue, lightning in the distance, a few robed spectators on the steps in the middle distance, cracked marble floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "pyramid": "A wide side-view 2D fighting game stage background: Egyptian pyramids in the desert at night under a huge golden moon, giant stone statues of seated pharaohs with glowing amber eyes, torches on tall poles, a sandstorm swirling in the distance, a crowd in robes watching from a stone terrace in the middle distance, sand-dusted stone tiles in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "volcano": "A wide side-view 2D fighting game stage background: inside an Icelandic volcano crater at night, rivers of glowing lava, black basalt columns, green aurora in the sky above the crater rim, steam vents, a few viking-cloaked spectators on a rock ledge in the middle distance, flat black volcanic rock floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting.",
+    "summit": "A wide side-view 2D fighting game stage background: an ancient wooden dojo shrine on a mountain summit above the clouds during a thunderstorm, huge torii gate, giant stone tiger statues, lightning striking the peaks, paper talismans fluttering in the wind, worn wooden platform floor in the foreground. The ground plane occupies the bottom 22% of the image and is flat and empty in the center (no characters, no objects) so fighters can stand on it. NO readable text, no letters, no logos. Painted late-1990s arcade fighting game background art, rich detail, cinematic lighting."
   },
   "templates": {
     "idle": {
@@ -1861,6 +2243,79 @@
         "fist raised high, triumphant",
         "holding the triumphant pose"
       ]
+    }
+  },
+  "extra": {
+    "worldmap": {
+      "out": "ui/worldmap.png",
+      "size": "1536x1024",
+      "prompt": "A stylized world map for a late-1990s arcade fighting game character select screen, side-scrolling-era pixel-art feel: flat deep navy-blue ocean, sandy beige continents with dark brown outlines and simple shading, Europe, Asia, Africa, the Americas and Oceania all visible in a classic equirectangular layout with the Pacific split at the edges, a subtle glowing cyan coastline outline. NO text, NO labels, NO flags, NO markers, NO icons, no grid, no compass."
+    }
+  },
+  "props": {
+    "market_lanterns": {
+      "size": "1536x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a long horizontal string of glowing red paper lanterns with gold tassels hanging from a dark wooden beam, wide and short. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "market_cart": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a Taiwanese night-market street food cart with steaming metal pots, red awning and a small glowing lamp. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "beach_palm": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a cluster of big tropical palm fronds hanging down diagonally from the upper left, dark green, dramatic backlight. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "beach_drums": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a group of Brazilian samba drums (large surdo bass drums and a snare) with colorful green and yellow straps, standing on the ground. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "steppe_flags": {
+      "size": "1536x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a long horizontal string of colorful Mongolian prayer flags (blue, white, red, green, yellow) fluttering on a rope, wide and short. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "steppe_cart": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a wooden Mongolian cart wheel leaning against a leather saddle and two metal milk churns. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "harbor_icicles": {
+      "size": "1536x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a long thick frozen ship rope hanging horizontally with heavy icicles dripping down from it, wide and short. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "harbor_crates": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. stacked snowy wooden fishing crates with a lobster trap and a coil of frozen rope. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "rooftop_branch": {
+      "size": "1536x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a cherry blossom tree branch full of pink blossoms reaching in horizontally from the left, wide. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "rooftop_lantern": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a Japanese stone garden lantern (toro) with a warm glowing light, slightly snowy roof tiles at its base. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "temple_bell": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a hanging bronze Chinese temple bell with long red silk banners and tassels, hanging from a dark red lacquered beam. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "temple_burner": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a large bronze Chinese incense burner cauldron on legs with thin smoke rising. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "gym_bag": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a heavy worn red leather punching bag hanging from a chain, slightly swinging. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "gym_stool": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a boxing corner: a wooden stool, a metal bucket with a towel draped over it and a water bottle. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "stadium_garland": {
+      "size": "1536x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a long horizontal string of orange marigold flower garlands and small glowing light bulbs, wide and short. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
+    },
+    "stadium_drum": {
+      "size": "1024x1024",
+      "prompt": "Late-1990s arcade fighting game stage foreground prop, hand-painted pixel-art feel, bold dark outlines, rich saturated colors. a pair of traditional Thai long drums (klong) with red and gold patterns on a wooden stand. Single isolated object, seen from the front at eye level, centered with margins. The whole background is ONE flat solid magenta color #FF00FF (pure chroma key); the object contains no magenta or pink. No text, no shadow on the ground, no floor."
     }
   }
 }

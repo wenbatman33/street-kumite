@@ -1,5 +1,5 @@
 // BAATAR 巴特爾：蒙古摔角投技型（360 指令投、霸體衝撞、老鷹舞對空）
-import { baseNormals, STR } from './common.js';
+import { baseNormals, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -53,7 +53,8 @@ const baatar = {
     '2HP': { hits: [{ dmg: 105 }] },
     '2MK': { hits: [{ maxReach: 215 }] },
     '2HK': { hits: [{ dmg: 115, maxReach: 235 }] },
-    'jHP': { hits: [{ dmg: 115, box: [-20, -40, 150, 110] }] },
+    // 泰山壓頂：整個人撲下去，落地震一下
+    'jHP': { ...airSig('jp', [1, 2], [3], 8, 9, { dmg: 118, box: [-20, -60, 150, 125] }), landShake: 4 },
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 128,

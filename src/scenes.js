@@ -1,15 +1,21 @@
-// 場景：標題 → 模式選單 → 選角 → VS → 對戰 → 結算；另有暫停／操作說明／設定
-import { VIEW_W, VIEW_H, GAME, KEYMAPS, STAGES } from './config.js';
-import { CHARS, CHAR_IDS } from './chars/index.js';
+// 場景：標題（閒置輪播序章與 Demo）→ 模式選單 → 選角 → 序章 → VS → 對戰 → 結算 → CONTINUE → 結局 → 製作名單
+// 另有格鬥家檔案、暫停、操作說明、設定
+import { VIEW_W, VIEW_H, GAME, KEYMAPS, STAGES, LAYOUT } from './config.js';
+import { CHARS, PLAYABLE_IDS, BOSS_IDS } from './chars/index.js';
 import { ASSETS, altAtlasImages } from './assets.js';
 import { MenuInput, readPad, readTouch, touchState } from './input.js';
 import { Battle } from './battle.js';
 import { HumanController, AIController, DummyController, NullController, dirToRaw, easyMap } from './controllers.js';
-import { drawBattle, drawStage, text, view } from './render.js';
+import { drawBattle, drawStage, drawArt, text, view } from './render.js';
+import { lowLayer, presentLow } from './pixel.js';
 import { audio } from './audio.js';
+import { STORY, BOSS_STORY, PROLOGUE, STAGE_INFO, CREDITS, winQuote } from './story.js';
+import { backdropFX } from './stagefx.js';
+import { drawMap, drawPin, drawRoute, LOCS } from './worldmap.js';
 
 const FONT_TC = '"Noto Sans TC", "PingFang TC", sans-serif';
 const STAGE_IDS = Object.keys(STAGES);
+const SC = () => LAYOUT.screens;
 
 // ---------- 選單輸入 ----------
 const KEYS = {
@@ -50,9 +56,23 @@ function rowAt(x, y, cx, y0, gap, n, hw = 260) {
   return i >= 0 && i < n && Math.abs(y - (y0 + i * gap)) < Math.min(26, gap / 2) ? i : -1;
 }
 
+// ---------- 通關紀錄 ----------
+const CLEAR_KEY = 'streetkumite-cleared';
+function cleared() { try { return new Set(JSON.parse(localStorage.getItem(CLEAR_KEY) || '[]')); } catch { return new Set(); } }
+function markCleared(id) { const s = cleared(); s.add(id); try { localStorage.setItem(CLEAR_KEY, JSON.stringify([...s])); } catch { /* 無痕模式 */ } }
+
 // ---------- 共用繪製 ----------
-function backdrop(g, t, stage = 'market', dim = 0.62) {
-  drawStage(g, stage, 300 + Math.sin(t * 0.003) * 200, t);
+// cam：舞台鏡頭位置（省略時緩慢左右搖）
+function backdrop(g, t, stage = 'market', dim = 0.62, cam = null) {
+  const lg = lowLayer(g);   // 舞台畫在低解析層（像素畫風）
+  const id = ASSETS.stages[stage] ? stage : readyStages()[0] || stage;
+  const cx = cam ?? 300 + Math.sin(t * 0.003) * 200;
+  drawStage(lg, id, cx, t);
+  const fx = backdropFX(id);   // 舞台動態元素
+  fx.advanceTo(t, cx);
+  fx.drawBack(lg, cx);
+  fx.drawFront(lg);
+  presentLow(g);
   g.fillStyle = `rgba(8,4,16,${dim})`;
   g.fillRect(0, 0, VIEW_W, VIEW_H);
 }
@@ -84,8 +104,9 @@ function logo(g, x, y, s = 1) {
   g.restore();
 }
 
-function portrait(g, id, x, y, h, flip = false, alpha = 1) {
-  const img = ASSETS.portraits[id];
+// hurt：落敗版頭像（鼻青臉腫）
+function portrait(g, id, x, y, h, flip = false, alpha = 1, hurt = false) {
+  const img = (hurt && ASSETS.hurt[id]) || ASSETS.portraits[id];
   if (!img) {
     g.fillStyle = CHARS[id].color;
     g.globalAlpha = alpha * 0.6;
@@ -97,10 +118,47 @@ function portrait(g, id, x, y, h, flip = false, alpha = 1) {
   const w = (img.width / img.height) * h;
   g.save();
   g.globalAlpha = alpha;
-  if (flip) { g.translate(x, 0); g.scale(-1, 1); g.drawImage(img, -w / 2, y, w, h); }
-  else g.drawImage(img, x - w / 2, y, w, h);
+  drawArt(g, img, x - w / 2, y, w, h, flip);
   g.restore();
 }
+
+// 街機風對話框：半透明黑底 + 金色雙框
+function panel(g, x, y, w, h, color = '#ffd84a', alpha = 0.78) {
+  g.fillStyle = `rgba(6,3,14,${alpha})`;
+  g.fillRect(x, y, w, h);
+  g.strokeStyle = '#000';
+  g.lineWidth = 6;
+  g.strokeRect(x, y, w, h);
+  g.strokeStyle = color;
+  g.lineWidth = 2;
+  g.strokeRect(x + 4, y + 4, w - 8, h - 8);
+}
+
+// 中文自動換行（依實際字寬）
+function wrap(g, str, maxW, size) {
+  g.font = `${size}px ${FONT_TC}`;
+  const out = [];
+  let line = '';
+  for (const ch of str) {
+    if (g.measureText(line + ch).width > maxW && line) { out.push(line); line = ''; }
+    line += ch;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+// 打字機效果：把多行文字依「已顯示字數」截斷
+const TYPE_SPEED = 1.1;   // 每 tick 幾個字
+function typed(lines, n) {
+  const out = [];
+  for (const l of lines) {
+    if (n <= 0) break;
+    out.push(l.slice(0, Math.max(0, Math.floor(n))));
+    n -= l.length;
+  }
+  return out;
+}
+const charCount = (lines) => lines.reduce((s, l) => s + l.length, 0);
 
 function menuList(g, items, sel, x, y, gap = 58, t = 0) {
   items.forEach((it, i) => {
@@ -111,6 +169,7 @@ function menuList(g, items, sel, x, y, gap = 58, t = 0) {
       g.fillRect(x - 260, y + i * gap - 24, 520, 48);
       g.fillStyle = '#ff8a1e';
       g.fillRect(x - 260, y + i * gap - 24, 6, 48);
+      if (t % 30 < 20) text(g, '▶', x - 236, y + i * gap, { size: 20, color: '#ffd84a', outline: null });
     }
     const hasVal = it.value !== undefined;
     text(g, label, hasVal ? x - 40 : x, y + i * gap, { size: on ? 32 : 28, color: on ? '#ffe9a8' : '#c9c2d8', font: FONT_TC, lw: 6 });
@@ -118,31 +177,99 @@ function menuList(g, items, sel, x, y, gap = 58, t = 0) {
   });
 }
 
-// ---------- 標題 ----------
-export class TitleScene {
-  constructor(app) {
-    this.app = app; this.t = 0;
-    // 標題畫面隨機挑兩位已就緒的角色
-    const ids = readyChars().sort(() => Math.random() - 0.5);
-    this.pair = [ids[0] || 'tora', ids[1] || 'vera'];
+// 火星粒子（標題、結局用）
+class Embers {
+  constructor(n = 40) { this.list = []; for (let i = 0; i < n; i++) this.list.push(this.spawn(true)); }
+  spawn(any) { return { x: Math.random() * VIEW_W, y: any ? Math.random() * VIEW_H : VIEW_H + 10, vy: 0.6 + Math.random() * 1.6, vx: (Math.random() - 0.5) * 0.6, s: 3 + Math.floor(Math.random() * 3) * 3, ph: Math.random() * 6 }; }
+  draw(g, t, color = '#ffb347') {
+    for (const e of this.list) {
+      e.y -= e.vy; e.x += e.vx + Math.sin(t * 0.03 + e.ph) * 0.4;
+      if (e.y < -10) Object.assign(e, this.spawn(false));
+      g.globalAlpha = Math.min(1, e.y / VIEW_H + 0.2);
+      g.fillStyle = color;
+      g.fillRect(Math.round(e.x / 3) * 3, Math.round(e.y / 3) * 3, e.s, e.s);
+    }
+    g.globalAlpha = 1;
   }
+}
+
+// ---------- 標題 ----------
+// 開場：logo 從大縮小砸下 → 白閃 → 兩位角色左右滑入；閒置 14 秒進入輪播（大會序章 → Demo 對戰）
+export class TitleScene {
+  constructor(app, opts = {}) {
+    this.app = app;
+    this.t = opts.quick ? 60 : 0;
+    this.idle = 0;
+    this.embers = new Embers(46);
+    this.ids = readyChars().sort(() => Math.random() - 0.5);
+    this.k = 0;
+    audio.stopMusic();
+  }
+  get pair() { const n = this.ids.length || 1; return [this.ids[this.k % n] || 'tora', this.ids[(this.k + 1) % n] || 'vera']; }
   update(ev) {
     this.t++;
-    if (ev.any.ok || ev.any.back) { audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
+    this.idle++;
+    if (this.t % 420 === 0) this.k += 2;   // 每 7 秒換一組角色
+    if (ev.any.ok || ev.any.back) {
+      if (this.t < 40) { this.t = 40; return; }   // 開場動畫中按鍵 → 直接跳到完成
+      audio.sfx('ok');
+      this.app.go(new MenuScene(this.app));
+      return;
+    }
+    if (this.idle > 60 * 14) this.app.go(attract(this.app));
   }
   tap() { this.update({ any: { ok: true } }); }
   draw(g) {
-    const t = this.t;
-    backdrop(g, t, 'market', 0.5);
-    portrait(g, this.pair[0], 270, 150, 600, false, 0.95);
-    portrait(g, this.pair[1], VIEW_W - 270, 150, 600, true, 0.95);
-    g.fillStyle = 'rgba(0,0,0,0.35)';
+    const t = this.t, L = SC().title;
+    const [a, b] = this.pair;
+    backdrop(g, t, HOME[b] || 'market', 0.45);
+    // 放射光束
+    if (t > 30) {
+      g.save();
+      g.translate(VIEW_W / 2, L.logoY);
+      g.rotate(t * 0.004);
+      g.globalAlpha = Math.min(0.22, (t - 30) / 60);
+      g.fillStyle = '#ffb347';
+      for (let i = 0; i < 12; i++) { g.rotate(Math.PI / 6); g.beginPath(); g.moveTo(0, 0); g.lineTo(900, -70); g.lineTo(900, 70); g.fill(); }
+      g.restore();
+    }
+    // 角色滑入（換組時先滑出再滑入）
+    const ph = t % 420;
+    const e = (v) => 1 - Math.pow(1 - Math.max(0, Math.min(1, v)), 3);
+    const inP = t < 420 ? (t - 34) / 30 : ph / 30;      // 第一組在開場 logo 之後滑入，之後每組從 0 開始
+    const off = ph > 400 ? e((ph - 400) / 20) * 520 : (1 - e(inP)) * 520;
+    portrait(g, a, L.portraitX - off, L.portraitY, L.portraitH, false, 0.96);
+    portrait(g, b, VIEW_W - L.portraitX + off, L.portraitY, L.portraitH, true, 0.96);
+    g.fillStyle = 'rgba(0,0,0,0.28)';
     g.fillRect(0, 0, VIEW_W, VIEW_H);
-    logo(g, VIEW_W / 2, 250, 1);
-    if (t % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, 520, { size: 34, color: '#fff' });
-    text(g, touchState.enabled ? '點擊畫面開始' : 'Enter / Space / 手把 START', VIEW_W / 2, 568, { size: 18, color: '#c9c2d8', font: FONT_TC });
-    text(g, '原創同人格鬥遊戲・角色與美術皆為原創，與任何商業格鬥遊戲無關', VIEW_W / 2, 690, { size: 15, color: '#8a829a', font: FONT_TC, outline: null });
+    this.embers.draw(g, t);
+    // logo：從 2.6 倍砸到 1 倍
+    if (t >= 14) {
+      const p = Math.min(1, (t - 14) / 14);
+      const s = t < 28 ? 2.6 - 1.6 * p * p : 1 + Math.max(0, Math.sin((t - 28) * 0.5)) * 0.04 * Math.max(0, 1 - (t - 28) / 20);
+      g.globalAlpha = Math.min(1, p * 2);
+      logo(g, VIEW_W / 2, L.logoY, s * L.logoS);
+      g.globalAlpha = 1;
+    }
+    if (t >= 28 && t < 38) { g.fillStyle = `rgba(255,255,255,${(38 - t) / 10})`; g.fillRect(0, 0, VIEW_W, VIEW_H); }
+    if (t > 50) {
+      if (t % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, L.startY, { size: 36, color: '#fff', lw: 8 });
+    }
+    text(g, '© 2026 STREET KUMITE', VIEW_W / 2, 696, { size: 16, color: '#c9c2d8', outline: null });
   }
+}
+
+// 閒置輪播：大會序章（自動翻頁）→ CPU 對 CPU 的 Demo 對戰 → 回標題
+function attract(app) {
+  const pages = [{ stage: 'market', title: 'STREET KUMITE', lines: PROLOGUE.slice(0, 2) }, { stage: 'temple', title: 'STREET KUMITE', lines: PROLOGUE.slice(2) }];
+  return new StoryScene(app, pages, () => demoBattle(app), { attract: true, auto: 150 });
+}
+
+function demoBattle(app) {
+  const ids = readyChars().sort(() => Math.random() - 0.5);
+  const a = ids[0] || 'tora', b = ids[1] || a;
+  const st = readyStages();
+  return new BattleScene(app, { mode: 'demo', chars: [a, b], stage: st.includes(HOME[b]) ? HOME[b] : st[0] });
 }
 
 // ---------- 模式選單 ----------
@@ -150,11 +277,12 @@ export class MenuScene {
   constructor(app) {
     this.app = app; this.t = 0; this.sel = 0;
     this.items = [
-      { label: '街機模式（連戰全員）', go: () => new SelectScene(app, 'ladder') },
-      { label: '自由對戰 CPU', go: () => new SelectScene(app, 'arcade') },
-      { label: '2P 本機雙人對戰', go: () => new SelectScene(app, 'versus') },
+      { label: '街機模式', go: () => new SelectScene(app, 'ladder') },
+      { label: '對戰 CPU', go: () => new SelectScene(app, 'arcade') },
+      { label: '雙人對戰', go: () => new SelectScene(app, 'versus') },
       { label: '訓練模式', go: () => new SelectScene(app, 'training') },
-      { label: '操作說明・招式表', go: () => new ControlsScene(app, this) },
+      { label: '格鬥家', go: () => new ProfileScene(app, this) },
+      { label: '招式表', go: () => new ControlsScene(app, this) },
       { label: '設定', go: () => new OptionsScene(app, this) },
     ];
   }
@@ -164,25 +292,25 @@ export class MenuScene {
     if (e.up) { this.sel = (this.sel + this.items.length - 1) % this.items.length; audio.sfx('move'); }
     if (e.down) { this.sel = (this.sel + 1) % this.items.length; audio.sfx('move'); }
     if (e.ok) { audio.sfx('ok'); this.app.go(this.items[this.sel].go()); }
-    if (e.back) { audio.sfx('back'); this.app.go(new TitleScene(this.app)); }
+    if (e.back) { audio.sfx('back'); this.app.go(new TitleScene(this.app, { quick: true })); }
   }
   click(x, y) {
-    this.items.forEach((it, i) => { if (Math.abs(y - (300 + i * 60)) < 26 && Math.abs(x - VIEW_W / 2) < 260) { this.sel = i; this.update({ any: { ok: true } }); } });
+    const i = rowAt(x, y, VIEW_W / 2, 300, 56, this.items.length);
+    if (i >= 0) { this.sel = i; this.update({ any: { ok: true } }); }
   }
   draw(g) {
     backdrop(g, this.t, 'beach', 0.66);
-    logo(g, VIEW_W / 2, 150, 0.62);
-    menuList(g, this.items, this.sel, VIEW_W / 2, 300, 60);
-    const hint = touchState.enabled ? '點選項目，或用搖桿 ↑↓ 選擇再按「確定」' : '↑↓ 選擇　Enter / U 確定　Esc 返回';
-    text(g, hint, VIEW_W / 2, 680, { size: 16, color: '#9a92aa', font: FONT_TC, outline: null });
+    logo(g, VIEW_W / 2, 120, 0.56);
+    menuList(g, this.items, this.sel, VIEW_W / 2, 300, 56, this.t);
   }
 }
 
 // ---------- 選角 ----------
 // 只列出素材已就緒的角色／舞台（新角色做完一位就會出現）
-const readyChars = () => CHAR_IDS.filter((id) => ASSETS.chars[id]);
+const readyChars = () => PLAYABLE_IDS.filter((id) => ASSETS.chars[id]);
+const readyBosses = () => BOSS_IDS.filter((id) => ASSETS.chars[id]);   // 素材做好的四天王才會出場
 const readyStages = () => STAGE_IDS.filter((id) => ASSETS.stages[id]);
-const HOME = { tora: 'market', vera: 'beach', baatar: 'steppe', skye: 'harbor', kagero: 'rooftop', shen: 'temple', drake: 'gym', kanya: 'stadium' };
+const HOME = { tora: 'market', vera: 'beach', baatar: 'steppe', skye: 'harbor', kagero: 'rooftop', shen: 'temple', drake: 'gym', kanya: 'stadium', atlas: 'ruins', seth: 'pyramid', volkan: 'volcano', tesshin: 'summit' };
 
 export class SelectScene {
   constructor(app, mode, prev) {
@@ -192,9 +320,12 @@ export class SelectScene {
     const idx = (id, d) => { const i = this.ids.indexOf(id); return i >= 0 ? i : d; };
     this.cur = [prev ? idx(prev.chars[0], 0) : 0, prev ? idx(prev.chars[1], 1) : Math.min(1, this.ids.length - 1)];
     this.done = [false, false];
+    this.flash = [0, 0];      // 確定時頭像白閃
     this.stage = prev ? Math.max(0, this.stages.indexOf(prev.stage)) : 0;
     this.phase = 'chars';   // chars → stage
     this.active = 0;        // 1P 模式：先選自己再選對手
+    this.clear = cleared();
+    if (audio.playing !== 8) audio.playMusic(8);   // 選角：拳帖之歌
   }
   toStage() {
     this.phase = 'stage';
@@ -202,8 +333,15 @@ export class SelectScene {
     const home = this.stages.indexOf(HOME[this.ids[this.cur[1]]]);
     if (home >= 0) this.stage = home;
   }
+  confirm(i) {
+    this.done[i] = true;
+    this.flash[i] = 12;
+    audio.sfx('ok');
+    audio.sfx('hitM');
+  }
   update(ev) {
     this.t++;
+    for (let i = 0; i < 2; i++) if (this.flash[i] > 0) this.flash[i]--;
     const n = this.ids.length;
     if (this.phase === 'chars') {
       const versus = this.mode === 'versus';
@@ -215,20 +353,22 @@ export class SelectScene {
           if (e.back) { this.done[i] = false; audio.sfx('back'); if (!versus && i === 1) this.active = 1; }
           continue;
         }
-        const cols = Math.min(n, 8);
+        const cols = Math.min(n, 4);
         if (e.left) { this.cur[i] = (this.cur[i] + n - 1) % n; audio.sfx('move'); }
         if (e.right) { this.cur[i] = (this.cur[i] + 1) % n; audio.sfx('move'); }
         if (e.up && n > cols) { this.cur[i] = (this.cur[i] + n - cols) % n; audio.sfx('move'); }
         if (e.down && n > cols) { this.cur[i] = (this.cur[i] + cols) % n; audio.sfx('move'); }
-        if (e.ok) { this.done[i] = true; audio.sfx('ok'); if (!versus && i === 0) this.active = 1; }
+        if (e.ok) { this.confirm(i); if (!versus && i === 0) this.active = 1; }
         if (e.back) {
           audio.sfx('back');
           if (!versus && i === 1) { this.active = 0; this.done[0] = false; }
           else { this.app.go(new MenuScene(this.app)); return; }
         }
+        if (!versus) break;   // 單人：同一個按鍵只處理目前這一邊（不然一按確定會連對手一起選掉）
       }
-      if (this.mode === 'ladder' && this.done[0]) { this.startLadder(); return; }
-      if (this.done[0] && this.done[1]) this.toStage();
+      if (this.mode === 'ladder' && this.done[0]) { if (!this.wait) this.wait = 24; }
+      if (this.wait && --this.wait === 0) { this.startLadder(); return; }
+      if (this.mode !== 'ladder' && this.done[0] && this.done[1]) this.toStage();
       return;
     }
     const e = ev.any;
@@ -242,22 +382,25 @@ export class SelectScene {
       this.app.go(this.mode === 'training' ? new BattleScene(this.app, setup) : new VSScene(this.app, setup));
     }
   }
-  // 街機模式：其他角色隨機排成連戰順序，舞台用對手主場
+  // 街機模式：其他角色隨機排序、宿敵固定排最後；先播大會序章與角色序章
   startLadder() {
     const me = this.ids[this.cur[0]];
-    const ladder = this.ids.filter((id) => id !== me).sort(() => Math.random() - 0.5);
+    const rival = STORY[me] && STORY[me].rival;
+    const ladder = this.ids.filter((id) => id !== me && id !== rival).sort(() => Math.random() - 0.5);
+    if (rival && this.ids.includes(rival) && rival !== me) ladder.push(rival);
+    ladder.push(...readyBosses());          // 最後依序挑戰拳帖四天王
     if (!ladder.length) ladder.push(me);
-    this.app.go(new VSScene(this.app, ladderSetup(me, ladder, 0, this.stages)));
+    const setup = ladderSetup(me, ladder, 0, this.stages);
+    this.app.go(new StoryScene(this.app, ladderPrologue(me), () => new TravelScene(this.app, HOME[me], setup)));
   }
+  // 角色格：4 欄，放在畫面下方中間
   slotPos(k) {
-    const n = this.ids.length;
-    const size = Math.min(120, Math.floor(1120 / n) - 14);
-    const gap = size + 14;
-    return { x: VIEW_W / 2 - (n * gap) / 2 + k * gap + gap / 2, y: 625, size };
+    const L = SC().select, size = L.slot, gap = size + 10, cols = 4;
+    return { x: VIEW_W / 2 - (cols * gap) / 2 + (k % cols) * gap + gap / 2, y: L.slotY + Math.floor(k / cols) * gap, size };
   }
   // 觸控：選舞台時點左右兩側換舞台、點中間確定；選角跟滑鼠一樣
   tap(x, y) {
-    if (this.phase === 'stage' && y > 300 && y < 440 && (x < 400 || x > VIEW_W - 400)) {
+    if (this.phase === 'stage' && y > 270 && y < 420 && (x < 400 || x > VIEW_W - 400)) {
       const e = { left: x < 400, right: x >= 400 };
       this.update({ any: e, p1: e, p2: e });
       return;
@@ -270,39 +413,46 @@ export class SelectScene {
     this.ids.forEach((id, k) => {
       const p = this.slotPos(k);
       if (Math.abs(x - p.x) < p.size / 2 && Math.abs(y - p.y) < p.size / 2) {
-        this.cur[i] = k; this.done[i] = true;
+        this.cur[i] = k; this.confirm(i);
         if (this.mode !== 'versus' && i === 0) this.active = 1;
-        if (this.done[0] && this.done[1]) this.toStage();
+        if (this.mode !== 'ladder' && this.done[0] && this.done[1]) this.toStage();
       }
     });
   }
+  // 上方世界地圖（各國國旗與位置），下方左右頭像、中間角色格
   draw(g) {
-    const t = this.t;
-    const hs = HOME[this.ids[this.cur[this.mode === 'ladder' ? 0 : this.active]]];
-    backdrop(g, t, this.phase === 'stage' ? this.stages[this.stage] : this.stages.includes(hs) ? hs : this.stages[0], 0.7);
-    const title = { ladder: '街機模式・連戰全員', arcade: '自由對戰 CPU', versus: '2P 對戰', training: '訓練模式' }[this.mode];
-    text(g, 'SELECT YOUR FIGHTER', VIEW_W / 2, 48, { size: 34, color: '#ffd84a' });
-    text(g, title, VIEW_W / 2, 88, { size: 20, color: '#fff', font: FONT_TC });
+    const t = this.t, L = SC().select;
+    drawMap(g);
+    // 地圖上的各國：1P 選的家鄉紅色、2P／CPU 藍色；選舞台時黃色
+    const hl = {};
+    if (this.phase === 'stage') hl[this.stages[this.stage]] = '#ffd84a';
+    else {
+      hl[HOME[this.ids[this.cur[0]]]] = '#ff5a3c';
+      if (this.mode !== 'ladder') hl[HOME[this.ids[this.cur[1]]]] = hl[HOME[this.ids[this.cur[1]]]] || '#3cb4ff';
+    }
+    for (const id of new Set(this.ids.map((c) => HOME[c]))) if (!hl[id]) drawPin(g, id, t);
+    for (const [id, c] of Object.entries(hl)) drawPin(g, id, t, c);
+    text(g, 'SELECT YOUR FIGHTER', VIEW_W / 2, 30, { size: 30, color: '#ffd84a', lw: 8 });
+    // 下方面板
+    const grd = g.createLinearGradient(0, L.slotY - 90, 0, L.slotY - 40);
+    grd.addColorStop(0, 'rgba(5,3,15,0)');
+    grd.addColorStop(1, 'rgba(5,3,15,0.88)');
+    g.fillStyle = grd;
+    g.fillRect(0, L.slotY - 90, VIEW_W, 400);
     for (let i = 0; i < 2; i++) {
+      const x = i === 0 ? L.portraitX : VIEW_W - L.portraitX;
       if (this.mode === 'ladder' && i === 1) {
-        text(g, `連戰 ${Math.max(1, this.ids.length - 1)} 位對手`, VIEW_W - 290, 300, { size: 34, color: '#ffd84a', font: FONT_TC });
-        text(g, '全部擊敗就通關！', VIEW_W - 290, 350, { size: 20, color: '#fff', font: FONT_TC });
+        text(g, '?', x, L.portraitY + L.portraitH / 2, { size: 200, color: 'rgba(255,255,255,0.12)', outline: null, shadow: false });
         continue;
       }
       const id = this.ids[this.cur[i]];
       const c = CHARS[id];
-      const x = i === 0 ? 290 : VIEW_W - 290;
-      const bob = this.done[i] ? 0 : Math.sin(t * 0.08) * 4;
-      portrait(g, id, x, 130 + bob, 400, i === 1);
-      const tag = i === 0 ? '1P' : this.mode === 'versus' ? '2P' : 'CPU';
-      text(g, tag, x, 128, { size: 26, color: i === 0 ? '#ff5a3c' : '#3cb4ff' });
-      text(g, c.name, x, 455, { size: 44, color: '#fff' });
-      text(g, `${c.nameZh}・${c.style}`, x, 496, { size: 20, color: c.color, font: FONT_TC });
-      text(g, c.blurb, x, 528, { size: 14, color: '#d8d0e6', font: FONT_TC, outline: '#000', lw: 4, shadow: false });
-      if (this.done[i]) text(g, 'READY!', x, 300, { size: 44, color: '#7dff6b', lw: 8 });
-      else if (this.mode === 'versus' || i === this.active) {
-        if (t % 40 < 28) text(g, '◀　▶', x, 300, { size: 34, color: '#ffffffaa', outline: null });
-      }
+      const shake = this.flash[i] > 6 ? (this.flash[i] % 2 ? 4 : -4) : 0;
+      portrait(g, id, x + shake, L.portraitY, L.portraitH, i === 1);
+      if (this.flash[i] > 0) { g.fillStyle = `rgba(255,255,255,${this.flash[i] / 16})`; g.fillRect(x - 180, L.portraitY, 360, L.portraitH); }
+      text(g, i === 0 ? '1P' : this.mode === 'versus' ? '2P' : 'CPU', x + (i === 0 ? -150 : 150), L.nameY, { size: 22, color: i === 0 ? '#ff5a3c' : '#3cb4ff' });
+      text(g, c.name, x, L.nameY, { size: 40, color: '#fff', lw: 8 });
+      if (this.done[i]) text(g, 'READY!', x, L.portraitY + L.portraitH * 0.55, { size: 46, color: '#7dff6b', lw: 10 });
     }
     // 角色格
     this.ids.forEach((id, k) => {
@@ -311,8 +461,10 @@ export class SelectScene {
       g.fillStyle = '#120a18';
       g.fillRect(x - h, y - h, size, size);
       const img = ASSETS.portraits[id];
-      if (img) { g.save(); g.beginPath(); g.rect(x - h + 2, y - h + 2, size - 4, size - 4); g.clip(); g.drawImage(img, x - h * 1.35, y - h * 1.1, size * 1.35, size * 1.35 * img.height / img.width); g.restore(); }
+      if (img) { g.save(); g.beginPath(); g.rect(x - h + 2, y - h + 2, size - 4, size - 4); g.clip(); drawArt(g, img, x - h * 1.35, y - h * 1.1, size * 1.35, size * 1.35 * img.height / img.width); g.restore(); }
+      if (this.clear.has(id)) text(g, '★', x + h - 12, y - h + 12, { size: 18, color: '#ffd84a' });
       for (let i = 0; i < 2; i++) {
+        if (this.mode === 'ladder' && i === 1) continue;   // 街機模式沒有對手游標
         if (this.cur[i] === k) {
           g.strokeStyle = i === 0 ? '#ff5a3c' : '#3cb4ff';
           g.lineWidth = 5;
@@ -321,47 +473,179 @@ export class SelectScene {
       }
     });
     if (this.phase === 'stage') {
-      g.fillStyle = 'rgba(0,0,0,0.7)';
-      g.fillRect(0, 300, VIEW_W, 140);
-      const s = STAGES[this.stages[this.stage]];
-      text(g, 'STAGE SELECT', VIEW_W / 2, 330, { size: 24, color: '#ffd84a' });
-      text(g, `◀  ${s.nameZh}  ${s.name}  ▶`, VIEW_W / 2, 380, { size: 34, color: '#fff', font: FONT_TC });
-      text(g, '確定開始', VIEW_W / 2, 420, { size: 16, color: '#c9c2d8', font: FONT_TC, outline: null });
-    } else {
-      const hint = this.mode === 'versus' ? '1P：A/D 選、T 確定　　2P：←/→ 選、I 確定' : this.active === 0 ? '選擇你的角色' : '選擇對手';
-      text(g, hint, VIEW_W / 2, 702, { size: 16, color: '#c9c2d8', font: FONT_TC, outline: null });
+      g.fillStyle = 'rgba(0,0,0,0.72)';
+      g.fillRect(0, 290, VIEW_W, 110);
+      const id = this.stages[this.stage];
+      const s = STAGES[id], info = STAGE_INFO[id];
+      text(g, `◀  ${s.nameZh}  ${s.name}  ▶`, VIEW_W / 2, 330, { size: 34, color: '#fff', font: FONT_TC });
+      if (info) text(g, info.en, VIEW_W / 2, 372, { size: 18, color: '#ffe9a8' });
     }
   }
 }
 
+// 街機模式開場：大會序章 + 角色序章（出身、參賽理由）
+function ladderPrologue(id) {
+  const S = STORY[id], c = CHARS[id];
+  const pages = [{ stage: 'temple', title: 'STREET KUMITE', lines: PROLOGUE }];
+  if (S) pages.push({ stage: HOME[id], char: id, title: `${c.name}　${c.nameZh}`, lines: S.bio });
+  return pages;
+}
+
+// ---------- 劇情 ----------
+// pages：[{ stage, char, title, lines }]；next() 回傳下一個場景
+// opts.auto：每頁顯示完後自動翻頁的 tick 數；opts.attract：輪播模式（任何按鍵回標題）
+export class StoryScene {
+  constructor(app, pages, next, opts = {}) {
+    this.app = app; this.pages = pages; this.next = next; this.opts = opts;
+    this.i = 0; this.t = 0; this.T = 0;
+    this.embers = new Embers(18);
+    if (opts.music !== undefined) audio.playMusic(opts.music);
+  }
+  get page() { return this.pages[this.i]; }
+  lines() {
+    const L = SC().story;
+    const key = `${this.i}|${L.boxW}|${L.textSize}`;
+    if (this.cacheKey !== key) { this.cacheKey = key; this.cache = this.page.lines.flatMap((l) => wrap(ctx2d(), l, L.boxW - 60, L.textSize)); }
+    return this.cache;
+  }
+  update(ev) {
+    this.t++; this.T++;
+    const e = ev.any;
+    if (this.opts.attract && (e.ok || e.back)) { this.app.go(new TitleScene(this.app, { quick: true })); return; }
+    const total = charCount(this.lines());
+    const shown = this.t * TYPE_SPEED;
+    if (e.back && !this.opts.attract) { audio.sfx('back'); this.finish(); return; }
+    if (e.ok) {
+      if (shown < total) this.t = Math.ceil(total / TYPE_SPEED);
+      else this.turn();
+      return;
+    }
+    if (this.opts.auto && shown >= total + this.opts.auto * TYPE_SPEED) this.turn();
+  }
+  tap() { this.update({ any: { ok: true } }); }
+  turn() {
+    this.i++; this.t = 0;
+    if (this.i >= this.pages.length) this.finish();
+    else audio.sfx('move');
+  }
+  finish() { if (!this.done) { this.done = true; this.app.go(this.next()); } }
+  draw(g) {
+    const L = SC().story, pg = this.page;
+    if (!pg) return;
+    // 每頁鏡頭緩慢橫移
+    backdrop(g, this.T, pg.stage || 'market', 0.38, Math.min(600, 120 + this.t * 0.6));
+    this.embers.draw(g, this.T, '#ffe9a8');
+    if (pg.char) {
+      const slide = Math.min(1, this.t / 18);
+      portrait(g, pg.char, L.portraitX + (1 - slide) * 300, L.portraitY, L.portraitH, true, slide);
+    }
+    // 電影黑邊
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, VIEW_W, 46);
+    g.fillRect(0, VIEW_H - 22, VIEW_W, 22);
+    if (pg.title) text(g, pg.title, 60, 23, { size: 20, color: '#ffd84a', align: 'left', font: FONT_TC, outline: null });
+    panel(g, L.boxX, L.boxY, L.boxW, L.boxH);
+    const lines = this.lines();
+    const shown = typed(lines, this.t * TYPE_SPEED);
+    const lh = L.textSize * 1.45;
+    shown.forEach((l, k) => text(g, l, L.boxX + 30, L.boxY + 34 + k * lh, { size: L.textSize, color: '#fff', align: 'left', font: FONT_TC, outline: '#000', lw: 4 }));
+    if (this.t * TYPE_SPEED >= charCount(lines) && this.T % 40 < 26) text(g, '▼', L.boxX + L.boxW - 34, L.boxY + L.boxH - 26, { size: 20, color: '#ffd84a', outline: null });
+    if (this.opts.attract && this.T % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, 90, { size: 26, color: '#fff' });
+  }
+}
+
+// 量字寬用的 context（場景沒拿到主畫布時）
+let measureCtx = null;
+function ctx2d() { return measureCtx || (measureCtx = document.createElement('canvas').getContext('2d')); }
+
 // ---------- VS ----------
+// 兩邊頭像滑入 → VS 砸下 → 雙方台詞（宿敵戰是兩句對話）→ 開打
 export class VSScene {
-  constructor(app, setup) { this.app = app; this.setup = setup; this.t = 0; }
+  constructor(app, setup) {
+    this.app = app; this.setup = setup; this.t = 0;
+    const [a, b] = setup.chars;
+    const L = setup.ladder;
+    this.rival = !!(L && STORY[a] && STORY[a].rival === b);
+    // 四天王：開戰台詞（鐵心對虎牙、沈有專屬對話）
+    this.boss = BOSS_STORY[b] || null;
+    if (this.boss) this.talk = (this.boss.vsTalk && this.boss.vsTalk[a]) || [[b, this.boss.bossLine]];
+    else this.talk = this.rival ? STORY[a].rivalTalk : [];
+    this.lineT = 80;                          // 每句台詞顯示多久
+    this.end = this.talk.length ? 40 + this.talk.length * this.lineT + 50 : 150;
+    audio.stopMusic();
+  }
   update(ev) {
     this.t++;
-    if (this.t > 150 || (this.t > 30 && ev.any.ok)) this.app.go(new BattleScene(this.app, this.setup));
+    if (this.t === 22) { audio.sfx('hitX'); }
+    if (this.t > this.end || (this.t > 30 && ev.any.ok)) this.app.go(new BattleScene(this.app, this.setup));
   }
   tap() { this.update({ any: { ok: true } }); this.t--; }
   draw(g) {
-    const t = this.t;
+    const t = this.t, L = SC().vs;
     const [a, b] = this.setup.chars;
-    g.fillStyle = '#0a0410';
-    g.fillRect(0, 0, VIEW_W, VIEW_H);
-    const slide = Math.min(1, t / 18);
-    g.save();
-    g.fillStyle = '#7a1206';
-    g.beginPath(); g.moveTo(0, 0); g.lineTo(VIEW_W * 0.58, 0); g.lineTo(VIEW_W * 0.42, VIEW_H); g.lineTo(0, VIEW_H); g.fill();
-    g.fillStyle = '#0b2f6b';
-    g.beginPath(); g.moveTo(VIEW_W * 0.58, 0); g.lineTo(VIEW_W, 0); g.lineTo(VIEW_W, VIEW_H); g.lineTo(VIEW_W * 0.42, VIEW_H); g.fill();
-    g.restore();
-    portrait(g, a, -200 + slide * 520, 80, 600, false);
-    portrait(g, b, VIEW_W + 200 - slide * 520, 80, 600, true);
-    text(g, CHARS[a].name, 260, 640, { size: 54 });
-    text(g, CHARS[b].name, VIEW_W - 260, 640, { size: 54 });
-    const s = t < 20 ? 3 - t / 10 : 1 + Math.sin(t * 0.2) * 0.03;
-    text(g, 'VS', VIEW_W / 2, VIEW_H / 2, { size: 130 * s, color: '#ffd84a', lw: 14 });
-    text(g, STAGES[this.setup.stage].nameZh, VIEW_W / 2, 690, { size: 20, color: '#fff', font: FONT_TC });
-    if (this.setup.ladder) text(g, `STAGE ${this.setup.stageNo + 1} / ${this.setup.ladder.length}`, VIEW_W / 2, 90, { size: 34, color: '#fff' });
+    const lg = lowLayer(g);
+    lg.fillStyle = '#0a0410';
+    lg.fillRect(0, 0, VIEW_W, VIEW_H);
+    // 斜切的紅藍底，帶捲動斜線
+    lg.fillStyle = this.rival ? '#5a0a0a' : '#7a1206';
+    lg.beginPath(); lg.moveTo(0, 0); lg.lineTo(VIEW_W * 0.58, 0); lg.lineTo(VIEW_W * 0.42, VIEW_H); lg.lineTo(0, VIEW_H); lg.fill();
+    lg.fillStyle = this.rival ? '#1a0a3a' : '#0b2f6b';
+    lg.beginPath(); lg.moveTo(VIEW_W * 0.58, 0); lg.lineTo(VIEW_W, 0); lg.lineTo(VIEW_W, VIEW_H); lg.lineTo(VIEW_W * 0.42, VIEW_H); lg.fill();
+    lg.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = -10; i < 30; i++) { const x = ((i * 90 + t * 6) % 2700) - 600; lg.beginPath(); lg.moveTo(x, 0); lg.lineTo(x + 40, 0); lg.lineTo(x - 260, VIEW_H); lg.lineTo(x - 300, VIEW_H); lg.fill(); }
+    presentLow(g);
+    const slide = 1 - Math.pow(1 - Math.min(1, t / 18), 3);
+    portrait(g, a, -260 + slide * (L.portraitX + 260), L.portraitY, L.portraitH, false);
+    portrait(g, b, VIEW_W + 260 - slide * (L.portraitX + 260), L.portraitY, L.portraitH, true);
+    text(g, CHARS[a].name, 260, L.nameY, { size: 56, lw: 10 });
+    text(g, CHARS[b].name, VIEW_W - 260, L.nameY, { size: 56, lw: 10 });
+    // VS
+    const s = t < 22 ? 3 - (t / 22) * 2 : 1 + Math.sin(t * 0.2) * 0.03;
+    text(g, 'VS', VIEW_W / 2, VIEW_H / 2 - 30, { size: 130 * s, color: '#ffd84a', lw: 14 });
+    if (t >= 22 && t < 30) { g.fillStyle = `rgba(255,255,255,${(30 - t) / 10})`; g.fillRect(0, 0, VIEW_W, VIEW_H); }
+    if ((this.rival || this.boss) && t > 24) {
+      g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(0, 120, VIEW_W, 46);
+      const label = this.boss ? this.boss.rank : '宿 命 之 戰';
+      if (t % 30 < 22) text(g, label, VIEW_W / 2, 143, { size: 30, color: this.boss ? '#ffd84a' : '#ff5a3c', font: FONT_TC, lw: 6 });
+    }
+    // 台詞：依序打字
+    this.talk.forEach(([who, line], k) => {
+      const t0 = 40 + k * this.lineT;
+      if (t < t0 || !line) return;
+      const bx = who === a ? 60 : VIEW_W - 60 - 520;   // 1P 說的放左邊、對手放右邊
+      const y = L.quoteY;
+      panel(g, bx, y - 26, 520, 52, CHARS[who].color, 0.8);
+      text(g, `「${line.slice(0, Math.floor((t - t0) * TYPE_SPEED * 1.4))}」`, bx + 20, y, { size: 19, color: '#fff', align: 'left', font: FONT_TC, outline: '#000', lw: 4 });
+    });
+  }
+}
+
+// ---------- 移動路線（街機模式每戰之間）----------
+export class TravelScene {
+  constructor(app, from, setup) {
+    this.app = app; this.from = from; this.setup = setup; this.to = setup.stage; this.t = 0;
+    audio.sfx('move');
+  }
+  update(ev) {
+    this.t++;
+    if (this.t === 80) audio.sfx('ok');
+    if (this.t > 150 || (this.t > 20 && ev.any.ok)) this.app.go(new VSScene(this.app, this.setup));
+  }
+  tap() { this.update({ any: { ok: true } }); }
+  draw(g) {
+    const t = this.t;
+    drawMap(g);
+    for (const id of Object.keys(LOCS)) if (id !== this.from && id !== this.to && ASSETS.stages[id] && Object.values(HOME).includes(id)) drawPin(g, id, t, null, false);
+    drawPin(g, this.from, t, '#ffffff');
+    drawRoute(g, this.from, this.to, Math.min(1, t / 80), t);
+    if (t > 80) {
+      drawPin(g, this.to, t, '#ff3b2f');
+      const info = STAGE_INFO[this.to];
+      g.fillStyle = 'rgba(0,0,0,0.7)';
+      g.fillRect(0, 600, VIEW_W, 80);
+      text(g, `${STAGES[this.to].nameZh}　${info ? info.en : ''}`, VIEW_W / 2, 640, { size: 30, color: '#fff', font: FONT_TC });
+    }
+    if (this.setup.ladder) text(g, `STAGE ${this.setup.stageNo + 1}`, VIEW_W / 2, 40, { size: 34, color: '#ffd84a', lw: 8 });
   }
 }
 
@@ -373,27 +657,136 @@ function ladderSetup(me, ladder, n, stages) {
   return { mode: 'arcade', ladder, stageNo: n, chars: [me, opp], stage: all.includes(home) ? home : all[n % all.length] };
 }
 
-// ---------- 通關 ----------
-export class EndingScene {
-  constructor(app, setup) { this.app = app; this.setup = setup; this.t = 0; audio.playMusic(1); }
+// ---------- 通關：角色結局 → 製作名單 ----------
+export function endingScene(app, setup) {
+  const id = setup.chars[0];
+  markCleared(id);
+  const S = STORY[id];
+  const pages = S ? S.ending.map((p, i) => ({ stage: p.stage, char: i === S.ending.length - 1 || i === 0 ? id : null, title: `ENDING・${CHARS[id].name}`, lines: p.text })) : [];
+  return new StoryScene(app, pages, () => new CreditsScene(app, id), { music: 8 });
+}
+
+export class CreditsScene {
+  constructor(app, id) { this.app = app; this.id = id; this.t = 0; this.embers = new Embers(30); }
   update(ev) {
     this.t++;
-    if (this.t > 90 && (ev.any.ok || ev.any.back)) { audio.stopMusic(); audio.sfx('ok'); this.app.go(new MenuScene(this.app)); }
+    const endT = 60 * 18;
+    if (this.t > endT + 60 && (ev.any.ok || ev.any.back)) { audio.stopMusic(); audio.sfx('ok'); this.app.go(new TitleScene(this.app, { quick: true })); }
+    else if (this.t > 60 && (ev.any.ok || ev.any.back)) this.t = endT;
   }
-  tap() { this.update({ any: { ok: true } }); this.t--; }
+  tap() { this.update({ any: { ok: true } }); }
+  draw(g) {
+    const t = this.t;
+    const home = HOME[this.id] || 'market';
+    backdrop(g, t, home, 0.72, Math.min(600, 100 + t * 0.4));
+    this.embers.draw(g, t, CHARS[this.id].color);
+    const endT = 60 * 18;
+    if (t < endT) {
+      // 製作名單由下往上捲
+      const y0 = VIEW_H + 40 - t * 0.9;
+      CREDITS.forEach(([role, name], i) => {
+        const y = y0 + i * 110;
+        if (y < -40 || y > VIEW_H + 40) return;
+        if (role) text(g, role, VIEW_W / 2, y, { size: i === 0 ? 48 : 18, color: i === 0 ? '#ffd84a' : '#ff9a5a', font: i === 0 ? undefined : FONT_TC, lw: i === 0 ? 10 : 4 });
+        if (name) text(g, name, VIEW_W / 2, y + 36, { size: 24, color: '#fff', font: FONT_TC });
+      });
+      // 右下角放全員頭像輪流
+      const ids = readyChars();
+      const id = ids[Math.floor(t / 120) % ids.length];
+      portrait(g, id, VIEW_W - 200, 230, 480, true, Math.min(1, (t % 120) / 20, (120 - (t % 120)) / 20));
+    } else {
+      const a = Math.min(1, (t - endT) / 40);
+      g.globalAlpha = a;
+      text(g, 'THE END', VIEW_W / 2, 300, { size: 96, color: '#ffd84a', lw: 14 });
+      text(g, 'THANK YOU FOR PLAYING', VIEW_W / 2, 400, { size: 30, color: '#fff' });
+      text(g, `${CHARS[this.id].name} ★ CLEAR`, VIEW_W / 2, 460, { size: 22, color: CHARS[this.id].color });
+      if (t > endT + 60 && t % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, 560, { size: 24, color: '#ffe9a8' });
+      g.globalAlpha = 1;
+    }
+  }
+}
+
+// ---------- CONTINUE ----------
+export class ContinueScene {
+  constructor(app, setup) { this.app = app; this.setup = setup; this.t = 0; this.n = 9; audio.stopMusic(); }
+  update(ev) {
+    this.t++;
+    if (ev.any.ok && this.t > 20) { audio.sfx('ok'); this.app.go(new VSScene(this.app, this.setup)); return; }
+    // 按返回鍵加速倒數（街機習慣）
+    if (ev.any.back) this.t = (Math.floor(this.t / 60) + 1) * 60;
+    if (this.t % 60 === 0) {
+      this.n--;
+      if (this.n < 0) { this.app.go(new GameOverScene(this.app)); return; }
+      audio.sfx('move');
+    }
+  }
+  tap() { this.update({ any: { ok: true } }); }
   draw(g) {
     const t = this.t;
     const id = this.setup.chars[0];
-    backdrop(g, t, HOME[id] && ASSETS.stages[HOME[id]] ? HOME[id] : 'market', 0.55);
-    portrait(g, id, 360, 80 + Math.sin(t * 0.03) * 6, 600);
-    const a = Math.min(1, t / 40);
-    g.globalAlpha = a;
-    text(g, 'CONGRATULATIONS!', 860, 170, { size: 54, color: '#ffd84a' });
-    text(g, `${CHARS[id].name} 全員擊破`, 860, 250, { size: 36, color: '#fff', font: FONT_TC });
-    text(g, `擊敗 ${this.setup.ladder.length} 位對手`, 860, 300, { size: 22, color: CHARS[id].color, font: FONT_TC });
-    text(g, 'THANK YOU FOR PLAYING', 860, 420, { size: 30, color: '#fff' });
-    if (t > 90 && t % 60 < 40) text(g, 'PRESS START', 860, 520, { size: 24, color: '#ffe9a8' });
+    backdrop(g, t, this.setup.stage, 0.8);
+    // 落敗頭像，隨倒數越來越暗
+    portrait(g, id, 340, 100, 560, false, 0.35 + (this.n / 9) * 0.65, true);
+    text(g, 'CONTINUE?', 860, 220, { size: 70, color: '#ffd84a', lw: 12 });
+    const p = (t % 60) / 60;
+    text(g, String(Math.max(0, this.n)), 860, 380, { size: 160 * (1.15 - p * 0.15), color: this.n <= 3 ? '#ff4a2a' : '#fff', lw: 14 });
+    if (t % 40 < 28) text(g, 'PRESS START', 860, 520, { size: 26, color: '#ffe9a8' });
+  }
+}
+
+export class GameOverScene {
+  constructor(app) { this.app = app; this.t = 0; }
+  update(ev) {
+    this.t++;
+    if (this.t > 200 || (this.t > 40 && (ev.any.ok || ev.any.back))) this.app.go(new TitleScene(this.app, { quick: true }));
+  }
+  tap() { this.update({ any: { ok: true } }); }
+  draw(g) {
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    g.globalAlpha = Math.min(1, this.t / 40);
+    text(g, 'GAME OVER', VIEW_W / 2, VIEW_H / 2, { size: 96, color: '#ff3b2f', lw: 12 });
     g.globalAlpha = 1;
+  }
+}
+
+// ---------- 格鬥家檔案 ----------
+export class ProfileScene {
+  constructor(app, back) { this.app = app; this.back = back; this.t = 0; this.i = 0; this.ids = readyChars(); this.clear = cleared(); }
+  update(ev) {
+    this.t++;
+    const n = this.ids.length;
+    if (ev.any.left) { this.i = (this.i + n - 1) % n; this.t = 0; audio.sfx('move'); }
+    if (ev.any.right) { this.i = (this.i + 1) % n; this.t = 0; audio.sfx('move'); }
+    if (ev.any.back || ev.any.ok) { audio.sfx('back'); this.app.go(this.back); }
+  }
+  tap(x) {
+    const e = { left: x < VIEW_W * 0.2, right: x > VIEW_W * 0.8 };
+    if (!e.left && !e.right) e.back = true;
+    this.update({ any: e });
+  }
+  draw(g) {
+    const id = this.ids[this.i], c = CHARS[id], S = STORY[id];
+    backdrop(g, this.t + this.i * 500, HOME[id], 0.62);
+    const slide = 1 - Math.pow(1 - Math.min(1, this.t / 16), 3);
+    portrait(g, id, 280 - (1 - slide) * 200, 90, 560, false, slide);
+    text(g, c.name, 280, 600, { size: 56, lw: 10 });
+    text(g, `${c.nameZh}・${c.title}`, 280, 642, { size: 20, color: c.color, font: FONT_TC });
+    if (this.clear.has(id)) text(g, '★ CLEAR', 280, 676, { size: 18, color: '#ffd84a' });
+    if (!S) return;
+    // 只放基本資料與故事本文
+    const x = 560, w = 670;
+    panel(g, x, 70, w, 540, c.color, 0.8);
+    text(g, S.countryEn, x + 30, 108, { size: 24, color: c.color, align: 'left' });
+    Object.entries(S.profile).forEach(([k, v], i) => {
+      text(g, `${k}　${v}`, x + 30, 152 + i * 30, { size: 17, color: '#fff', align: 'left', font: FONT_TC, outline: null });
+    });
+    g.fillStyle = 'rgba(255,255,255,0.15)';
+    g.fillRect(x + 30, 252, w - 60, 2);
+    const lines = S.bio.flatMap((l) => wrap(g, l, w - 60, 19));
+    typed(lines, this.t * 2.2).forEach((l, k) => text(g, l, x + 30, 290 + k * 34, { size: 19, color: '#eee', align: 'left', font: FONT_TC, outline: null, shadow: false }));
+    text(g, '◀', 24, 360, { size: 30, color: '#ffffff88', outline: null });
+    text(g, '▶', VIEW_W - 24, 360, { size: 30, color: '#ffffff88', outline: null });
   }
 }
 
@@ -407,13 +800,20 @@ export class BattleScene {
     this.t = 0;
     this.pause = null;
     const mode = setup.mode;
-    const p1 = mode === 'versus' ? new HumanController([KEYMAPS.p1], [0], true) : new HumanController([KEYMAPS.solo], [0], true);
+    this.demo = mode === 'demo';               // 標題輪播的 CPU 對 CPU
+    const p1 = this.demo ? new AIController(2) : mode === 'versus' ? new HumanController([KEYMAPS.p1], [0], true) : new HumanController([KEYMAPS.solo], [0], true);
     this.p1Ctrl = p1;
     let p2;
     this.training = mode === 'training' ? (app.training = app.training || { ...TRAINING_DEFAULT }) : null;
-    if (mode === 'versus') p2 = new HumanController([KEYMAPS.p2], [1]);
+    if (this.demo) p2 = new AIController(2);
+    else if (mode === 'versus') p2 = new HumanController([KEYMAPS.p2], [1]);
     else if (mode === 'training') p2 = new DummyController(this.training);
-    else p2 = new AIController(setup.ladder ? Math.min(3, GAME.difficulty + Math.floor(setup.stageNo / 3)) : GAME.difficulty);
+    else {
+      // 街機模式後段變強；四天王再加一級，最終王固定最強
+      const boss = setup.ladder && CHARS[setup.chars[1]].boss;
+      const lv = setup.ladder ? Math.min(3, GAME.difficulty + Math.floor(setup.stageNo / 3) + (boss ? 1 : 0)) : GAME.difficulty;
+      p2 = new AIController(boss && CHARS[setup.chars[1]].final ? 3 : lv);
+    }
     this.p2Ctrl = p2;
     this.battle = new Battle({ chars: setup.chars.map((id) => CHARS[id]), stage: setup.stage, mode, controllers: [p1, p2], training: this.training });
     if (setup.chars[0] === setup.chars[1]) altAtlasImages(setup.chars[1]);   // 鏡像配色（通常已在閒置時算好）
@@ -424,6 +824,12 @@ export class BattleScene {
   update(ev, codes) {
     this.t++;
     const b = this.battle;
+    if (this.demo) {
+      // Demo：任何按鍵、打完或 40 秒後回標題
+      if (ev.any.ok || ev.any.back || padStart() || b.phase === 'matchEnd' || this.t > 60 * 40) { audio.stopMusic(); this.app.go(new TitleScene(this.app, { quick: true })); return; }
+      b.step();
+      return;
+    }
     if (this.pause) { this.pause.update(ev); return; }
     if (codes.includes('Escape') || codes.includes('Enter') && this.setup.mode !== 'versus' || codes.includes('NumpadEnter') || padStart()) {
       if (b.phase !== 'matchEnd') { this.openPause(); return; }
@@ -453,8 +859,11 @@ export class BattleScene {
     this.pause = new PauseMenu(this);
   }
 
-  // 觸控點擊：只在暫停選單有作用（對戰中的點擊不做事）
-  tap(x, y) { if (this.pause) this.pause.tap(x, y); }
+  // 觸控點擊：只在暫停選單有作用（對戰中的點擊不做事）；Demo 中點擊回標題
+  tap(x, y) {
+    if (this.demo) { this.update({ any: { ok: true } }, []); return; }
+    if (this.pause) this.pause.tap(x, y);
+  }
 
   // 訓練錄製：1P 的輸入暫時操控假人
   startRecording() {
@@ -498,7 +907,13 @@ export class BattleScene {
   }
 
   draw(g) {
-    drawBattle(g, this.battle, this.t);
+    const b = this.battle;
+    drawBattle(g, b, this.t);
+    if (this.demo) {
+      text(g, 'DEMO PLAY', VIEW_W / 2, 132, { size: 30, color: '#ffd84a' });
+      if (this.t % 60 < 40) text(g, 'PRESS START', VIEW_W / 2, 600, { size: 30, color: '#fff' });
+      return;
+    }
     if (this.recording) text(g, '● REC', VIEW_W - 90, 120, { size: 22, color: this.t % 40 < 25 ? '#ff3b2f' : '#802020' });
     if (this.training && !this.pause) {
       const hint = touchState.enabled ? 'Ⅱ 選單　⟲ 重設位置（按住搖桿←/→ 到牆角）' : 'Esc 選單　R 重設位置（按住←/→ 到牆角）';
@@ -606,32 +1021,34 @@ class PauseMenu {
 }
 
 // ---------- 結算 ----------
+// 勝者頭像 + 勝利台詞（打字）；街機模式：贏了自動進下一戰（打完全員進結局），輸了進 CONTINUE
 export class ResultScene {
   constructor(app, setup, result) {
     this.app = app; this.setup = setup; this.result = result; this.t = 0; this.sel = 0;
     const L = setup.ladder;
-    if (L && result === 0) this.items = [setup.stageNo + 1 < L.length ? `下一戰（${setup.stageNo + 2} / ${L.length}）` : '通關！'];
-    else if (L) this.items = ['CONTINUE（再挑戰）', '回主選單'];
-    else this.items = ['再戰一場', '重新選角', '回主選單'];
+    this.items = L ? [] : ['再戰一場', '重新選角', '回主選單'];
+    const [a, b] = setup.chars;
+    this.quote = result === -1 ? '' : result === 0 ? winQuote(a, b) : winQuote(b, a);
     audio.stopMusic();
   }
   update(ev) {
     this.t++;
     const e = ev.any;
     const n = this.items.length;
-    if (e.up) { this.sel = (this.sel + n - 1) % n; audio.sfx('move'); }
-    if (e.down) { this.sel = (this.sel + 1) % n; audio.sfx('move'); }
+    if (n && e.up) { this.sel = (this.sel + n - 1) % n; audio.sfx('move'); }
+    if (n && e.down) { this.sel = (this.sel + 1) % n; audio.sfx('move'); }
     const L = this.setup.ladder;
-    if (L && this.result === 0 && this.t > 240) e.ok = true;   // 街機模式贏了自動進下一戰
+    if (L && this.result === 0 && this.t > 300) e.ok = true;   // 街機模式贏了自動進下一戰
     if (e.ok && this.t > 30) {
+      // 台詞還沒打完 → 先顯示完
+      if (this.t * TYPE_SPEED < this.quote.length + 20) { this.t = Math.ceil((this.quote.length + 20) / TYPE_SPEED); return; }
       audio.sfx('ok');
       if (L) {
         const me = this.setup.chars[0];
         if (this.result === 0) {
           const next = this.setup.stageNo + 1;
-          this.app.go(next < L.length ? new VSScene(this.app, ladderSetup(me, L, next)) : new EndingScene(this.app, this.setup));
-        } else if (this.sel === 0) this.app.go(new VSScene(this.app, this.setup));
-        else this.app.go(new MenuScene(this.app));
+          this.app.go(next < L.length ? new TravelScene(this.app, this.setup.stage, ladderSetup(me, L, next)) : endingScene(this.app, this.setup));
+        } else this.app.go(new ContinueScene(this.app, this.setup));
         return;
       }
       if (this.sel === 0) this.app.go(new VSScene(this.app, this.setup));
@@ -639,24 +1056,32 @@ export class ResultScene {
       else this.app.go(new MenuScene(this.app));
     }
   }
+  // 勝者頭像在左、敗者（鼻青臉腫）在右，勝利台詞在下方
   draw(g) {
-    const t = this.t;
+    const t = this.t, R = SC().result;
     backdrop(g, t, this.setup.stage, 0.72);
     const r = this.result;
     if (r === -1) {
       text(g, 'DRAW GAME', VIEW_W / 2, 200, { size: 80, color: '#ffd84a' });
     } else {
-      const id = this.setup.chars[r];
-      portrait(g, id, 360, 90, 560, r === 1);
+      const win = this.setup.chars[r], lose = this.setup.chars[1 - r];
+      const slide = 1 - Math.pow(1 - Math.min(1, t / 16), 3);
+      portrait(g, lose, R.loseX + (1 - slide) * 300, R.loseY, R.loseH, true, 0.92, true);
+      portrait(g, win, R.winX - (1 - slide) * 300, R.winY, R.winH, false);
       const who = this.setup.mode === 'versus' ? `${r + 1}P WINS` : r === 0 ? 'YOU WIN' : 'YOU LOSE';
-      text(g, who, 860, 180, { size: 78, color: r === 0 || this.setup.mode === 'versus' ? '#ffd84a' : '#ff5a3c' });
-      text(g, CHARS[id].name, 860, 270, { size: 48 });
-      text(g, CHARS[id].nameZh, 860, 318, { size: 24, color: CHARS[id].color, font: FONT_TC });
+      text(g, who, VIEW_W / 2, 64, { size: 72, color: r === 0 || this.setup.mode === 'versus' ? '#ffd84a' : '#ff5a3c', lw: 12 });
+      if (this.quote) {
+        const lines = wrap(g, `「${this.quote}」`, 900, 26);
+        const h = 36 + lines.length * 38;
+        panel(g, VIEW_W / 2 - 500, R.quoteY - 30, 1000, h, CHARS[win].color);
+        text(g, CHARS[win].name, VIEW_W / 2 - 470, R.quoteY - 30, { size: 22, color: CHARS[win].color, align: 'left' });
+        typed(lines, t * TYPE_SPEED).forEach((l, k) => text(g, l, VIEW_W / 2 - 470, R.quoteY + 10 + k * 38, { size: 26, color: '#fff', align: 'left', font: FONT_TC, outline: '#000', lw: 4 }));
+      }
     }
-    menuList(g, this.items, this.sel, 860, 440, 60);
+    menuList(g, this.items, this.sel, VIEW_W / 2, R.menuY, 60, t);
   }
   tap(x, y) {
-    const i = rowAt(x, y, 860, 440, 60, this.items.length);
+    const i = this.items.length ? rowAt(x, y, VIEW_W / 2, SC().result.menuY, 60, this.items.length) : 0;
     if (i < 0) return;
     this.sel = i;
     this.update({ any: { ok: true } });

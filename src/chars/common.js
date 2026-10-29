@@ -81,20 +81,20 @@ export const HURT = {
 };
 
 // 一般投技演出（所有角色共用骨架；傷害、暈眩、音效寫在角色檔）
-// 投技動畫影格：1 伸手、2 抓住拉近、3 提膝、4 推出、5 收招
+// 街機原作的節奏：抓住瞬間定格 → 一個動作甩出去 → 重摔，整段約半秒，不拖泥帶水
+// 投技動畫影格：1 伸手、2 抓住拉近、4 推出、5 收招
 // path：[tick, 被投者在前方的距離, 高度, 旋轉角度（度，正值 = 往投技方前方翻）, 被投者姿勢 pull/gut/up/fly]
-// 前摔：抓住拉近 → 膝撞肚子把人頂起 → 往前上方拋出，空中翻轉後重摔在前方
+// 前投：抓住 → 往前上方甩出 → 摔在前方
 export const THROW_FWD = {
-  seq: [[2, 8], [3, 10], [4, 8], [5, 16]],
-  path: [[0, 85, 0, 0, 'pull'], [7, 66, 0, 0, 'pull'], [10, 62, 24, 0, 'gut'], [16, 66, 50, -5, 'gut'], [19, 84, 64, 10, 'up'], [24, 150, 150, 35, 'fly'], [30, 228, 90, 45, 'fly'], [33, 258, 6, 30, 'fly']],
-  impacts: [10],                      // 提膝命中的瞬間（只有特效、音效）
-  hitT: 33, launch: [3, 6], hitstop: 10, shake: 9, dust: true, slam: true,
+  seq: [[2, 6], [4, 12], [5, 12]],
+  path: [[0, 80, 0, 0, 'pull'], [5, 60, 0, 0, 'pull'], [8, 70, 60, 20, 'up'], [13, 150, 150, 50, 'fly'], [18, 225, 80, 45, 'fly'], [21, 255, 6, 30, 'fly']],
+  hitT: 21, launch: [2.5, 6], hitstop: 12, shake: 10, dust: true, slam: true,
 };
-// 背摔（按住「後」投）：抓住拉近 → 從頭上甩過去 → 摔在背後（左右換邊）
+// 後投（按住「後」）：抓住 → 從頭上甩過去 → 摔在背後（左右換邊）
 export const THROW_BACK = {
-  seq: [[2, 6], [3, 8], [2, 10], [0, 18]],
-  path: [[0, 85, 0, 0, 'pull'], [6, 58, 0, 0, 'pull'], [10, 42, 70, -20, 'up'], [15, 8, 205, -60, 'fly'], [21, -75, 165, -95, 'fly'], [25, -125, 8, -110, 'fly']],
-  hitT: 25, launch: [-3, 6], hitstop: 10, shake: 9, dust: true, slam: true,
+  seq: [[2, 5], [2, 6], [0, 16]],
+  path: [[0, 80, 0, 0, 'pull'], [5, 50, 30, -20, 'up'], [9, 5, 190, -75, 'fly'], [14, -90, 140, -110, 'fly'], [18, -130, 6, -120, 'fly']],
+  hitT: 18, launch: [-2.5, 6], hitstop: 12, shake: 10, dust: true, slam: true,
 };
 
 // 打擊強度共用值
@@ -116,6 +116,7 @@ export function baseNormals(o = {}) {
   const swF = { pre: [1, 2], act: [3], rec: [4, 5] };
   const jpF = { pre: [1, 2], act: [3], rec: [3] };
   const jkF = { pre: [1, 2], act: [3], rec: [3] };
+  const jlF = { pre: [1], act: [2], rec: [2] };      // 跳輕：手腳半伸、出得快，判定小
   const n = {
     '5LP': normal('lp', lpF, 4, 3, 6, { ...L, box: [20, 205, 120, 50], dmg: 30, guard: 'mid', react: 'high' }),
     '5MP': normal('hp', { pre: [1], act: [3], rec: [4, 5] }, 6, 3, 11, { ...M, box: [20, 200, 135, 55], dmg: 60, guard: 'mid', react: 'high' }),
@@ -129,17 +130,23 @@ export function baseNormals(o = {}) {
     '2LK': normal('crk', crkF, 4, 2, 8, { ...L, box: [20, 0, 135, 40], dmg: 25, guard: 'low', react: 'low' }, { crouch: true }),
     '2MK': normal('crk', { pre: [1, 1], act: [2], rec: [2, 3, 1] }, 7, 3, 13, { ...M, box: [20, 0, 170, 40], dmg: 60, guard: 'low', react: 'low', maxReach: 205 }, { crouch: true }),
     '2HK': normal('sweep', swF, 9, 4, 24, { ...H, box: [20, 0, 200, 40], dmg: 100, guard: 'low', react: 'low', kd: true, launch: [3, 6], maxReach: 225 }, { crouch: true, cancel: false }),
-    'jLP': normal('jp', jpF, 4, 9, 1, { ...L, box: [10, -10, 100, 70], dmg: 40, guard: 'high', react: 'high' }, { air: true, cancel: false }),
-    'jMP': normal('jp', jpF, 5, 7, 1, { ...M, box: [10, -20, 115, 80], dmg: 70, guard: 'high', react: 'high' }, { air: true, cancel: false }),
-    'jHP': normal('jp', jpF, 7, 6, 1, { ...H, box: [10, -30, 125, 90], dmg: 100, guard: 'high', react: 'high' }, { air: true, cancel: false }),
-    'jLK': normal('jk', jkF, 4, 9, 1, { ...L, box: [10, -30, 110, 70], dmg: 40, guard: 'high', react: 'high' }, { air: true, cancel: false }),
-    'jMK': normal('jk', jkF, 5, 7, 1, { ...M, box: [10, -40, 130, 80], dmg: 70, guard: 'high', react: 'high' }, { air: true, cancel: false }),
-    'jHK': normal('jk', jkF, 7, 6, 1, { ...H, box: [10, -40, 140, 90], dmg: 100, guard: 'high', react: 'high' }, { air: true, cancel: false }),
+    'jLP': normal('jp', jlF, 3, 9, 1, { ...L, box: [10, -10, 95, 70], dmg: 40, guard: 'high', react: 'high', maxReach: 150 }, { air: true, cancel: false }),
+    'jMP': normal('jp', jpF, 5, 8, 1, { ...M, box: [10, -20, 115, 80], dmg: 70, guard: 'high', react: 'high' }, { air: true, cancel: false }),
+    'jHP': normal('jp', jpF, 7, 7, 1, { ...H, box: [10, -40, 130, 100], dmg: 100, guard: 'high', react: 'high' }, { air: true, cancel: false, trail: true }),
+    'jLK': normal('jk', jlF, 3, 9, 1, { ...L, box: [10, -30, 105, 70], dmg: 40, guard: 'high', react: 'high', maxReach: 160 }, { air: true, cancel: false }),
+    'jMK': normal('jk', jkF, 5, 8, 1, { ...M, box: [10, -40, 130, 80], dmg: 70, guard: 'high', react: 'high' }, { air: true, cancel: false }),
+    'jHK': normal('jk', jkF, 7, 7, 1, { ...H, box: [10, -50, 145, 100], dmg: 100, guard: 'high', react: 'high' }, { air: true, cancel: false, trail: true }),
   };
   // 空中技收招後維持最後一格直到落地
   for (const k of ['jLP', 'jMP', 'jHP', 'jLK', 'jMK', 'jHK']) n[k].holdLast = true;
   for (const [k, v] of Object.entries(o)) n[k] = deepMerge(n[k] || {}, v);
   return n;
+}
+
+// 招牌跳躍重攻擊：改用角色自己的必殺技影格（pre = 起手影格、act = 出招影格），S = 判定開始、A = 持續
+// 空中技一律以重心為錨點，站姿影格在空中也不會錯位
+export function airSig(anim, pre, act, S, A, hit = {}) {
+  return { anim, seq: timeline([pre, S - 1], [act, A], [act.slice(-1), 1]), hits: [{ t: [S, S + A - 1], ...hit }], trail: true };
 }
 
 export function deepMerge(a, b) {

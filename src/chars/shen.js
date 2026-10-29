@@ -1,5 +1,5 @@
 // SHEN 沈：武僧長棍牽制型（普通技最長、龍突長戳、旋風棍對空、撐竿飛踢）
-import { baseNormals, normal, STR } from './common.js';
+import { baseNormals, normal, STR, airSig } from './common.js';
 
 const S = STR;
 const W = { limbHurt: 0.45 };   // 棍子前端打不到本人
@@ -59,6 +59,8 @@ const shen = {
     '2MK': { hits: [{ maxReach: 235 }] },
     '2HK': { ...W, hits: [{ box: [20, 0, 270, 40], dmg: 95, maxReach: 270 }] },
     'jHP': { ...W, hits: [{ box: [0, -40, 190, 110] }] },
+    // 空中撐竿飛踢：棍子撐住身體、雙腳蹬出
+    'jHK': airSig('sp3', [2], [3, 4], 7, 8, { dmg: 105 }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 125,

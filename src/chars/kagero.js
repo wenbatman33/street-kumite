@@ -1,5 +1,5 @@
 // KAGERO 陽炎：忍者速度型（苦無、空中苦無、瞬移、二段跳）
-import { baseNormals, STR } from './common.js';
+import { baseNormals, STR, airSig } from './common.js';
 
 const S = STR;
 
@@ -60,6 +60,8 @@ const kagero = {
     '5HK': { hits: [{ dmg: 100 }] },
     '2MK': { hits: [{ dmg: 62 }] },
     '2HK': { hits: [{ dmg: 90 }] },
+    // 空中月影斬：短刀劃出紫色弧光
+    'jHP': airSig('sp2', [1], [2, 3], 6, 7, { dmg: 95 }),
   }),
   throw: {
     type: 'throw', anim: 'throw', range: 115,
