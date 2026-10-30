@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "STREET KUMITE · 街頭拳鬥",
+  "short_name": "街頭拳鬥",
+  "description": "原創網頁格鬥遊戲：搓招必殺技、連段、超必殺、街機連戰模式。",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0a0410",
+  "theme_color": "#0a0410",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
