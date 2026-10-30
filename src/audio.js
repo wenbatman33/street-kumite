@@ -4,13 +4,22 @@ import { GAME } from './config.js';
 
 let ctx = null, master = null, sfxBus = null, musicBus = null, noiseBuf = null;
 let reverb = null, delay = null;
-const CH = {};          // 配樂各聲部的混音通道
+const MIXCH = {};       // 配樂各聲部的混音通道（音量、聲像、殘響送出），所有曲子共用
+let CH = {};            // 目前這首曲子的聲部入口；切歌時整組淡出後斷開，已預排的音符不會疊到下一首
+
+// 手機（觸控為主的裝置）CPU 慢、又要跑像素化畫面，即時合成來不及算就會斷音
+// lite = 省電合成（少疊音、不超取樣、殘響短）；ahead = 配樂預排秒數（主執行緒卡頓時不斷拍）
+const MOBILE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+export const OPT = { lite: MOBILE, ahead: MOBILE ? 1 : 0.3 };
 
 function init() {
   if (ctx) return true;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return false;
-  ctx = new AC();
+  // 手機用較大的音訊緩衝：延遲多一點點，但比較不會斷
+  try { ctx = new AC({ latencyHint: MOBILE ? 'balanced' : 'interactive' }); } catch { ctx = new AC(); }
+  // 回到前景（iOS 切 App、來電結束）時恢復音訊
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx.state !== 'running') ctx.resume().catch(() => {}); });
   master = ctx.createGain();
   master.gain.value = GAME.volume;
   master.connect(ctx.destination);
@@ -114,7 +123,7 @@ function initMusicBus() {
   musicBus.connect(comp).connect(master);
   // 殘響：雜訊衰減做成的脈衝響應
   reverb = ctx.createConvolver();
-  const len = Math.floor(ctx.sampleRate * 1.8);
+  const len = Math.floor(ctx.sampleRate * (OPT.lite ? 1.1 : 1.8));
   const ir = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let c = 0; c < 2; c++) {
     const d = ir.getChannelData(c);
@@ -141,7 +150,7 @@ function initMusicBus() {
     out.connect(musicBus);
     if (rev) { const s = ctx.createGain(); s.gain.value = rev; out.connect(s).connect(reverb); }
     if (dly) { const s = ctx.createGain(); s.gain.value = dly; out.connect(s).connect(delay); }
-    CH[name] = g;
+    MIXCH[name] = g;
   };
   mk('kick', 0, 0.04, 0); mk('snare', 0, 0.25, 0); mk('hat', 0.25, 0.04, 0); mk('perc', -0.25, 0.25, 0);
   mk('bass', 0, 0, 0); mk('lead', 0.05, 0.28, 0.24); mk('pad', 0, 0.45, 0); mk('arp', -0.3, 0.2, 0.22);
@@ -166,19 +175,23 @@ function fm(ch, t, dur, n, o = {}) {
   car.frequency.setValueAtTime(glide ? midi(glide) : f, t);
   if (glide) car.frequency.exponentialRampToValueAtTime(f, t + 0.06);
   car.detune.value = detune;
-  const mod = ctx.createOscillator();
-  mod.frequency.value = f * ratio;
-  const mg = ctx.createGain();
-  mg.gain.setValueAtTime(f * index, t);
-  mg.gain.linearRampToValueAtTime(f * idxEnd, t + idxT);
-  mod.connect(mg).connect(car.frequency);
+  // 調變量為 0 就是純正弦，不用建調變器
+  let mod = null;
+  if (index || idxEnd) {
+    mod = ctx.createOscillator();
+    mod.frequency.value = f * ratio;
+    const mg = ctx.createGain();
+    mg.gain.setValueAtTime(f * index, t);
+    mg.gain.linearRampToValueAtTime(f * idxEnd, t + idxT);
+    mod.connect(mg).connect(car.frequency);
+  }
   const g = ctx.createGain();
   adsr(g.gain, t, dur, gain, a, d, s, r);
   car.connect(g).connect(ch);
   const end = t + dur + r + 0.1;
-  if (vib) vibrato(car, t, dur, vib, end);
-  car.start(t); mod.start(t);
-  car.stop(end); mod.stop(end);
+  if (vib && !(OPT.lite && dur < 0.4)) vibrato(car, t, dur, vib, end);   // 省電：短音的抖音聽不出來，省掉
+  car.start(t); car.stop(end);
+  if (mod) { mod.start(t); mod.stop(end); }
 }
 
 // 延遲進來的抖音（長音才明顯）
@@ -203,19 +216,21 @@ function sub(ch, t, dur, n, o = {}) {
   flt.Q.value = q;
   flt.frequency.setValueAtTime(cutStart, t);
   flt.frequency.exponentialRampToValueAtTime(cutoff, t + cutT);
+  // 省電：微走音疊音只留一顆（音量依顆數補回），破音不做超取樣
+  const vs = OPT.lite && voices.length > 1 ? [0] : voices;
   const g = ctx.createGain();
-  adsr(g.gain, t, dur, gain / Math.sqrt(voices.length), a, d, s, r);
+  adsr(g.gain, t, dur, gain / Math.sqrt(vs.length), a, d, s, r);
   let head = flt;
-  if (shaper) { const ws = ctx.createWaveShaper(); ws.curve = shaper; ws.oversample = '2x'; ws.connect(flt); head = ws; }
+  if (shaper) { const ws = ctx.createWaveShaper(); ws.curve = shaper; ws.oversample = OPT.lite ? 'none' : '2x'; ws.connect(flt); head = ws; }
   flt.connect(g).connect(ch);
   const end = t + dur + r + 0.1;
-  for (const dt of voices) {
+  for (const dt of vs) {
     const o2 = ctx.createOscillator();
     o2.type = wave;
     o2.frequency.setValueAtTime(glide ? midi(glide) : f, t);
     if (glide) o2.frequency.exponentialRampToValueAtTime(f, t + 0.07);
     o2.detune.value = dt;
-    if (vib) vibrato(o2, t, dur, vib, end, 6);
+    if (vib && !(OPT.lite && dur < 0.4)) vibrato(o2, t, dur, vib, end, 6);
     o2.connect(head);
     o2.start(t);
     o2.stop(end);
@@ -234,8 +249,8 @@ function dist() {
 const INST = {
   // FM 銅管主旋律（雙載波微走音，厚一點）
   brass: (t, d, n, o) => {
-    fm(CH.lead, t, d, n, { ratio: 1, index: 0.4, idxEnd: 2.4, idxT: 0.06, a: 0.02, d: 0.3, s: 0.78, r: 0.12, gain: 0.3, vib: 16, glide: o.glide });
-    fm(CH.lead, t, d, n, { ratio: 1, index: 0.3, idxEnd: 1.6, idxT: 0.08, a: 0.03, d: 0.3, s: 0.7, r: 0.12, gain: 0.16, detune: 9 });
+    fm(CH.lead, t, d, n, { ratio: 1, index: 0.4, idxEnd: 2.4, idxT: 0.06, a: 0.02, d: 0.3, s: 0.78, r: 0.12, gain: OPT.lite ? 0.34 : 0.3, vib: 16, glide: o.glide });
+    if (!OPT.lite) fm(CH.lead, t, d, n, { ratio: 1, index: 0.3, idxEnd: 1.6, idxT: 0.08, a: 0.03, d: 0.3, s: 0.7, r: 0.12, gain: 0.16, detune: 9 });
   },
   // 方波主旋律（明亮、帶滑音）
   square: (t, d, n, o) => sub(CH.lead, t, d, n, { wave: 'square', voices: [-7, 7], cutoff: 3800, cutStart: 6000, a: 0.005, d: 0.25, s: 0.75, r: 0.09, gain: 0.2, vib: 18, glide: o.glide }),
@@ -686,12 +701,13 @@ function scheduleMusic() {
   if (!music) return;
   const S = SONGS[music.song];
   const step = 60 / (S.bpm * music.tempo) / 4;
-  while (music.next < ctx.currentTime + 0.25) {
+  while (music.next < ctx.currentTime + OPT.ahead) {
     const name = S.order[music.si];
     const sec = S.sec[name];
     const bar = Math.floor(music.step / 16), s16 = music.step % 16;
     const t = music.next + (s16 % 2 ? (S.swing || 0) * step : 0);
-    if (!music.mute) playStep(S, sec, bar, s16, t, step);
+    // 主執行緒卡太久、已經來不及的格子直接跳過（不一次補發擠成一團），拍子仍對齊
+    if (!music.mute && t > ctx.currentTime - 0.03) playStep(S, sec, bar, s16, t, step);
     music.step++;
     music.next += step;
     if (music.step >= sec.bars * 16) {
@@ -705,7 +721,7 @@ function scheduleMusic() {
 export const audio = {
   unlock() {
     if (!init()) return;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});   // iOS 被打斷後是 'interrupted'
   },
   sfx(name) {
     if (!GAME.sfx || !ctx || ctx.state !== 'running') return;
@@ -723,11 +739,20 @@ export const audio = {
     const i = ((song % SONGS.length) + SONGS.length) % SONGS.length;
     const S = SONGS[i];
     delay.delayTime.setValueAtTime(Math.min(1.4, (60 / S.bpm / 4) * (S.delay || 3)), ctx.currentTime);
-    music = { song: i, si: 0, step: 0, next: ctx.currentTime + 0.1, tempo: this.tempo || 1 };
+    // 這首曲子專用的聲部入口（接到共用混音通道）
+    CH = {};
+    for (const [k, mix] of Object.entries(MIXCH)) { CH[k] = ctx.createGain(); CH[k].connect(mix); }
+    music = { song: i, si: 0, step: 0, next: ctx.currentTime + 0.1, tempo: this.tempo || 1, ch: CH };
     music.timer = setInterval(scheduleMusic, 50);
   },
   stopMusic() {
-    if (music) { clearInterval(music.timer); music = null; }
+    if (!music) return;
+    clearInterval(music.timer);
+    // 已預排還沒播的音符：整組聲部快速淡出再斷開，不會疊到下一首，斷開後也不再耗運算
+    const chs = Object.values(music.ch), t = ctx.currentTime;
+    for (const g of chs) { g.gain.setValueAtTime(1, t); g.gain.linearRampToValueAtTime(0, t + 0.08); }
+    setTimeout(() => { for (const g of chs) g.disconnect(); }, 200);
+    music = null;
   },
   get playing() { return music ? music.song : -1; },
   tempo: 1,                                   // DEV：速度倍率
@@ -736,8 +761,9 @@ export const audio = {
     MIX[name] = v;
     if (!ctx) return;
     if (name === 'music') musicBus.gain.value = v;
-    else if (CH[name]) CH[name].gain.value = v;
+    else if (MIXCH[name]) MIXCH[name].gain.value = v;
   },
+  opt: OPT,                                   // DEV：省電合成、預排秒數
   setVolume(v) { if (master) master.gain.value = v; },
   voice(text) {
     if (!GAME.voice || !('speechSynthesis' in window)) return;

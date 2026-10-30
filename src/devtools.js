@@ -253,6 +253,8 @@ export class DevTools {
     mu.add(M, 'play').name('▶ 播放');
     mu.add(M, 'stop').name('■ 停止');
     mu.add(audio, 'tempo', 0.7, 1.3, 0.01).name('速度倍率（重播生效）');
+    mu.add(audio.opt, 'lite').name('省電合成（手機預設開）');
+    mu.add(audio.opt, 'ahead', 0.1, 2, 0.05).name('配樂預排秒數');
     const mixName = { music: '音樂總音量', kick: '大鼓', snare: '小鼓', hat: '鈸', perc: '打擊', bass: '貝斯', lead: '主旋律', pad: '弦樂', arp: '琶音', stab: '銅管短打', gtr: '吉他' };
     for (const k of Object.keys(MIX)) mu.add(MIX, k, 0, k === 'music' ? 1 : 1.5, 0.01).name(mixName[k] || k).onChange((v) => { audio.setMix(k, v); this.save(); });
 
